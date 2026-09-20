@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { TelemetryHeader } from "@/components/TelemetryHeader";
+import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { StorePricingCabin } from "@/components/StorePricingCabin";
 import { FulfillmentConsole } from "@/components/FulfillmentConsole";
 import { OrderQueryCabin } from "@/components/OrderQueryCabin";
+import { FinnInfraAndFaq } from "@/components/FinnInfraAndFaq";
 import { 
   ShoppingCart, 
   Terminal, 
@@ -48,10 +50,13 @@ export default function Home() {
       {/* 顶部遥测监控栏 */}
       <TelemetryHeader mode={engineMode} activeTaskCount={activeTaskCount} />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
-        {/* 全息浮动胶囊导航 (Floating Capsule Nav) */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[var(--line)]/60 pb-5 mb-10">
-          <div className="flex items-center p-1 border border-[var(--line)] bg-[#090e16]/80 backdrop-blur-md rounded-full shadow-lg">
+      {/* Finn 实时节点与履约动态走马灯 */}
+      <LiveActivityFeed />
+
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
+        {/* 全息浮动胶囊导航 */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/[0.08] pb-6 mb-10">
+          <div className="flex items-center p-1 border border-white/10 bg-[#090e16]/80 backdrop-blur-md rounded-full shadow-lg">
             <button
               onClick={() => setCurrentTab("store")}
               className={`px-5 py-2 rounded-full font-mono text-xs font-bold transition-all flex items-center gap-2 ${
@@ -89,11 +94,10 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 右侧微光状态指示 */}
           <div className="hidden lg:flex items-center gap-4 text-xs font-mono text-neutral-400">
-            <span className="flex items-center gap-2 px-3 py-1 border border-white/5 bg-black/40 rounded-full">
+            <span className="flex items-center gap-2 px-3.5 py-1.5 border border-white/5 bg-white/[0.02] rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400 signal-dot" />
-              <span>UPSTREAM DISPATCH: READY</span>
+              <span>FINN DISPATCH CLUSTER · ALL SYSTEMS NOMINAL</span>
             </span>
           </div>
         </div>
@@ -106,7 +110,7 @@ export default function Home() {
         {/* 舱位 2：自助激活终端 */}
         {currentTab === "redeem" && (
           <div className="space-y-6">
-            <div className="p-3.5 border border-[var(--line)] bg-[#070d16]/85 backdrop-blur-md rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+            <div className="p-3.5 border border-white/[0.08] bg-[#070d16]/85 backdrop-blur-md rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
               <div className="flex items-center gap-2 text-gray-300">
                 <span className="w-2 h-2 bg-[var(--holo)] rounded-full" />
                 <span>欢迎来到 ChatGPT / Claude 自动化交付中枢。请在下方录入卡密与 Session 启动下发。</span>
@@ -131,15 +135,18 @@ export default function Home() {
           <OrderQueryCabin />
         )}
 
+        {/* Finn 节点基础设施与 FAQ 深度内容区（解决页面空旷问题） */}
+        <FinnInfraAndFaq />
+
         {/* 底部保障与全局说明 */}
-        <footer className="mt-20 pt-8 border-t border-[var(--line)]/60 flex flex-col sm:flex-row items-center justify-between font-mono text-xs text-neutral-500 gap-4">
+        <footer className="mt-20 pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between font-mono text-xs text-neutral-500 gap-4">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-[var(--holo)]" />
-            <span>QUANTUM LINK PROTOCOL · INTEGRATED STORE & FULFILLMENT</span>
+            <span className="w-1.5 h-1.5 bg-[var(--holo)] rounded-full" />
+            <span>QUANTUM LINK PROTOCOL · CRAFTED BY 骁清 FINN</span>
           </div>
           <div className="flex items-center gap-4 text-[11px]">
-            <span>NODE: TOKYO-BGP-01</span>
-            <span>UPSTREAM: SUZHE.AI V1</span>
+            <span>NODE: TOKYO BGP / CLOUDFLARE WARP</span>
+            <span>SHANGHAI TIME: UTC+8</span>
           </div>
         </footer>
       </main>
