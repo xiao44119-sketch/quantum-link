@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Flame,
   Layers,
-  Settings
+  Settings,
+  X
 } from "lucide-react";
 import { StoreProduct } from "@/config/store-products";
 
@@ -27,7 +28,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // 后台数据状态
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [contact, setContact] = useState({
     wechat: "AI-ASSIST-VIP",
@@ -35,11 +35,8 @@ export default function AdminPage() {
     noticeText: "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。"
   });
 
-  // 编辑模态框
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
   const [isNewProduct, setIsNewProduct] = useState(false);
-
-  // 消息提示
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showToast = (type: "success" | "error", text: string) => {
@@ -47,7 +44,6 @@ export default function AdminPage() {
     setTimeout(() => setToastMsg(null), 3000);
   };
 
-  // 尝试登录并拉取数据
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authKey.trim()) return;
@@ -77,7 +73,6 @@ export default function AdminPage() {
     }
   };
 
-  // 保存数据到后端持久化
   const handleSaveAll = async (newProducts?: StoreProduct[], newContact?: any) => {
     setSaving(true);
     try {
@@ -108,7 +103,6 @@ export default function AdminPage() {
     }
   };
 
-  // 删除商品
   const handleDeleteProduct = (id: string) => {
     if (!confirm("确认下架并删除该商品吗？")) return;
     const updated = products.filter((p) => p.id !== id);
@@ -116,7 +110,6 @@ export default function AdminPage() {
     handleSaveAll(updated);
   };
 
-  // 保存单个商品编辑
   const handleSaveProductModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
@@ -133,7 +126,6 @@ export default function AdminPage() {
     handleSaveAll(updated);
   };
 
-  // 打开新增商品
   const handleOpenAddProduct = () => {
     setIsNewProduct(true);
     setEditingProduct({
@@ -157,15 +149,16 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-[#eaf8f7] font-mono relative selection:bg-cyan-500/20 selection:text-cyan-200">
+    <div className="min-h-screen bg-[#06090e] text-[#f0f7f7] font-mono relative selection:bg-cyan-500/20 selection:text-cyan-200">
+      <div className="ambient-glow" />
       <div className="screen-lines" />
       <div className="hud-grid" />
 
-      {/* 消息提示悬浮条 */}
+      {/* 提示条 */}
       {toastMsg && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-3 duration-200">
           <div
-            className={`px-4 py-2 border text-xs shadow-2xl flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-full border text-xs shadow-2xl flex items-center gap-2 backdrop-blur-md ${
               toastMsg.type === "success"
                 ? "border-emerald-500/80 bg-emerald-950/90 text-emerald-300"
                 : "border-rose-500/80 bg-rose-950/90 text-rose-300"
@@ -181,15 +174,15 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* 尚未登录：身份门禁 */}
+      {/* 门禁登录 */}
       {!isAuthenticated ? (
         <div className="min-h-screen flex items-center justify-center p-4 relative z-20">
-          <div className="w-full max-w-md border border-[var(--line-strong)] bg-[#080d16]/95 p-8 corner-bracket shadow-2xl">
-            <div className="text-center space-y-2 mb-6">
-              <div className="w-12 h-12 mx-auto border border-[var(--holo)]/40 bg-cyan-950/40 flex items-center justify-center text-[var(--holo)]">
+          <div className="w-full max-w-md glass-card corner-bracket p-8 rounded-lg shadow-2xl">
+            <div className="text-center space-y-2 mb-7">
+              <div className="w-12 h-12 mx-auto rounded-lg border border-cyan-400/40 bg-cyan-950/40 flex items-center justify-center text-[var(--holo)] shadow-[0_0_20px_rgba(0,229,216,0.2)]">
                 <Lock className="w-6 h-6 animate-pulse" />
               </div>
-              <h2 className="text-lg font-bold text-white tracking-widest uppercase">
+              <h2 className="text-lg font-bold text-white tracking-wider uppercase">
                 ADMIN CONSOLE GATEWAY
               </h2>
               <p className="text-xs text-[var(--fg-muted)]">
@@ -199,13 +192,13 @@ export default function AdminPage() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="text-xs text-gray-400 block mb-1">管理员口令 (DEFAULT: admin888)</label>
+                <label className="text-xs text-neutral-300 block mb-1.5">管理员口令 (DEFAULT: admin888)</label>
                 <input
                   type="password"
                   value={authKey}
                   onChange={(e) => setAuthKey(e.target.value)}
                   placeholder="请输入密钥..."
-                  className="w-full bg-black/60 border border-[var(--line)] px-4 py-3 text-sm text-white focus:outline-none focus:border-[var(--holo)]"
+                  className="w-full bg-black/50 border border-white/10 hover:border-white/20 focus:border-[var(--holo)] rounded-md px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
                   autoFocus
                   required
                 />
@@ -214,14 +207,14 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 border border-[var(--holo)] bg-cyan-950/60 hover:bg-cyan-900 text-white text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-md border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,229,216,0.2)]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--holo)]" /> : <Key className="w-4 h-4 text-[var(--holo)]" />}
                 <span>验证身份并进入后台 (ENTER)</span>
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-[var(--line)]/60 text-center">
+            <div className="mt-6 pt-4 border-t border-white/[0.08] text-center">
               <a
                 href="/"
                 className="text-xs text-[var(--warm)] hover:underline inline-flex items-center gap-1"
@@ -233,13 +226,13 @@ export default function AdminPage() {
           </div>
         </div>
       ) : (
-        /* 已登录：管理控制中心 */
+        /* 管理中心主界面 */
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          {/* 顶栏控制条 */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--line)] pb-5">
+          {/* 顶栏控制 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 signal-dot" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 signal-dot" />
                 <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">
                   QUANTUM LINK · 站长运营中枢
                 </h1>
@@ -254,7 +247,7 @@ export default function AdminPage() {
                 href="/"
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-2 border border-[var(--line)] hover:border-white text-xs text-neutral-300 hover:text-white transition-colors inline-flex items-center gap-1.5"
+                className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-xs text-neutral-300 hover:text-white transition-all inline-flex items-center gap-1.5 bg-white/[0.02]"
               >
                 <span>预览前台效果</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -264,7 +257,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => handleSaveAll()}
                 disabled={saving}
-                className="px-5 py-2 border border-[var(--holo)] bg-cyan-950/60 hover:bg-cyan-900 text-white text-xs font-bold tracking-wider inline-flex items-center gap-2 shadow-lg"
+                className="px-5 py-2 rounded-full border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white text-xs font-bold tracking-wider inline-flex items-center gap-2 shadow-[0_0_15px_rgba(0,229,216,0.25)] transition-all"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-[var(--holo)]" />}
                 <span>保存全部修改 (SAVE)</span>
@@ -272,47 +265,47 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 模块 1：全局收银与客服设置 */}
-          <div className="corner-bracket border border-[var(--line)] bg-[#070b12]/90 p-6 backdrop-blur-md space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-white border-b border-[var(--line)] pb-3">
+          {/* 收银台与客服配置 */}
+          <div className="glass-card corner-bracket p-6 rounded-lg shadow-xl space-y-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-white border-b border-white/[0.08] pb-3">
               <Settings className="w-4 h-4 text-[var(--warm)]" />
               <span>收银台与客服联系方式配置</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="text-gray-400 block mb-1">客服微信号 (点击可一键复制)</label>
+                <label className="text-neutral-400 block mb-1.5">客服微信号 (前台一键复制)</label>
                 <input
                   type="text"
                   value={contact.wechat}
                   onChange={(e) => setContact({ ...contact, wechat: e.target.value })}
-                  className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-gray-400 block mb-1">收款码提示文字</label>
+                <label className="text-neutral-400 block mb-1.5">收款码提示文字</label>
                 <input
                   type="text"
                   value={contact.qrNote}
                   onChange={(e) => setContact({ ...contact, qrNote: e.target.value })}
-                  className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
                 />
               </div>
 
               <div className="md:col-span-3">
-                <label className="text-gray-400 block mb-1">商城顶部全局公告说明</label>
+                <label className="text-neutral-400 block mb-1.5">商城顶部全局公告说明</label>
                 <input
                   type="text"
                   value={contact.noticeText}
                   onChange={(e) => setContact({ ...contact, noticeText: e.target.value })}
-                  className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
-          {/* 模块 2：商品列表管理 */}
+          {/* 商品列表 */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -325,73 +318,72 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={handleOpenAddProduct}
-                className="px-3.5 py-1.5 border border-[var(--warm)]/50 bg-amber-950/30 hover:bg-amber-900/50 text-[var(--warm)] text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 rounded-full border border-amber-500/40 bg-amber-950/30 hover:bg-amber-900/50 text-[var(--warm)] text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(255,184,133,0.15)]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ 上架新套餐</span>
               </button>
             </div>
 
-            {/* 商品表格/卡片列表 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.map((prod) => (
                 <div
                   key={prod.id}
-                  className="corner-bracket border border-[var(--line)] bg-[#070c14]/90 p-5 flex flex-col justify-between space-y-4 hover:border-[var(--line-strong)] transition-all"
+                  className="glass-card corner-bracket p-6 rounded-lg flex flex-col justify-between space-y-4 hover:border-[var(--line-strong)] transition-all shadow-lg"
                 >
                   <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-start justify-between gap-2 mb-3">
                       <div>
                         <h3 className="text-base font-bold text-white">{prod.title}</h3>
-                        <span className="text-[11px] text-[var(--fg-muted)] block">{prod.sub}</span>
+                        <span className="text-xs text-[var(--fg-muted)] block mt-0.5">{prod.sub}</span>
                       </div>
-                      <span className="text-[10px] px-1.5 py-0.5 border border-[var(--warm)]/40 bg-amber-950/30 text-[var(--warm)]">
+                      <span className="text-[10px] px-2 py-0.5 rounded border border-[var(--warm)]/40 bg-amber-950/30 text-[var(--warm)]">
                         {prod.badge}
                       </span>
                     </div>
 
-                    <div className="flex items-baseline gap-2 my-3 text-xs">
-                      <span className="text-2xl font-bold text-white">¥ {prod.price}</span>
+                    <div className="flex items-baseline gap-2 my-4 text-xs">
+                      <span className="text-3xl font-extrabold text-white">¥ {prod.price}</span>
                       {prod.originalPrice && (
-                        <span className="line-through text-neutral-500">{prod.originalPrice}</span>
+                        <span className="line-through text-neutral-500 text-xs">{prod.originalPrice}</span>
                       )}
-                      <span className="text-neutral-500 ml-auto">/ {prod.period}</span>
+                      <span className="text-neutral-400 ml-auto">/ {prod.period}</span>
                     </div>
 
-                    <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed mb-3">
+                    <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed mb-4">
                       {prod.description}
                     </p>
 
-                    <div className="p-2 border border-[var(--line)] bg-black/40 text-[10px] space-y-1">
+                    <div className="p-3 rounded border border-white/[0.06] bg-black/40 text-[11px] space-y-1.5">
                       <div className="flex justify-between">
                         <span className="text-neutral-500">卡密前缀:</span>
                         <span className="text-[var(--holo)] font-bold">{prod.prefix}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-500">库存状态:</span>
-                        <span className="text-emerald-400">{prod.stockStatus}</span>
+                        <span className="text-emerald-400 font-medium">● {prod.stockStatus}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-[var(--line)]/60 flex items-center justify-between text-xs">
+                  <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs">
                     <button
                       type="button"
                       onClick={() => {
                         setIsNewProduct(false);
                         setEditingProduct({ ...prod });
                       }}
-                      className="px-3 py-1 border border-[var(--holo)]/40 text-[var(--holo)] hover:bg-cyan-950/40 transition-colors inline-flex items-center gap-1 text-[11px]"
+                      className="px-3 py-1.5 rounded border border-cyan-400/40 text-cyan-300 hover:bg-cyan-950/40 transition-colors inline-flex items-center gap-1.5 text-xs"
                     >
-                      <Edit3 className="w-3 h-3" /> 编辑商品
+                      <Edit3 className="w-3.5 h-3.5" /> 编辑商品
                     </button>
 
                     <button
                       type="button"
                       onClick={() => handleDeleteProduct(prod.id)}
-                      className="text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 text-[11px]"
+                      className="text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 text-xs transition-colors"
                     >
-                      <Trash2 className="w-3 h-3" /> 下架删除
+                      <Trash2 className="w-3.5 h-3.5" /> 下架删除
                     </button>
                   </div>
                 </div>
@@ -399,41 +391,41 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 编辑/新增商品抽屉弹窗 */}
+          {/* 编辑弹窗 */}
           {editingProduct && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-              <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto border border-[var(--line-strong)] bg-[#090e15] p-6 text-white corner-bracket shadow-2xl space-y-4">
-                <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
-                  <h3 className="text-sm font-bold text-white tracking-wider">
+              <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto glass-card corner-bracket p-7 rounded-lg shadow-2xl space-y-5 text-white">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                  <h3 className="text-base font-bold text-white tracking-wider">
                     {isNewProduct ? "上架新 AI 套餐" : "编辑套餐属性"}
                   </h3>
                   <button
                     onClick={() => setEditingProduct(null)}
-                    className="text-[var(--fg-muted)] hover:text-white"
+                    className="text-neutral-400 hover:text-white"
                   >
-                    ✕
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <form onSubmit={handleSaveProductModal} className="space-y-4 text-xs">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-gray-400 block mb-1">商品标题 (Title)</label>
+                      <label className="text-neutral-300 block mb-1">商品标题 (Title)</label>
                       <input
                         type="text"
                         value={editingProduct.title}
                         onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">副标题 (Sub)</label>
+                      <label className="text-neutral-300 block mb-1">副标题 (Sub)</label>
                       <input
                         type="text"
                         value={editingProduct.sub}
                         onChange={(e) => setEditingProduct({ ...editingProduct, sub: e.target.value })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                         required
                       />
                     </div>
@@ -441,32 +433,32 @@ export default function AdminPage() {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-gray-400 block mb-1">现售价 (¥)</label>
+                      <label className="text-neutral-300 block mb-1">现售价 (¥)</label>
                       <input
                         type="text"
                         value={editingProduct.price}
                         onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-[var(--warm)] font-bold"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-[var(--warm)] font-bold text-sm"
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">划线原价 (¥)</label>
+                      <label className="text-neutral-300 block mb-1">划线原价 (¥)</label>
                       <input
                         type="text"
                         value={editingProduct.originalPrice || ""}
                         onChange={(e) => setEditingProduct({ ...editingProduct, originalPrice: e.target.value })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-neutral-400"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-neutral-400"
                         placeholder="例如: ¥188"
                       />
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">有效质保周期</label>
+                      <label className="text-neutral-300 block mb-1">有效质保周期</label>
                       <input
                         type="text"
                         value={editingProduct.period}
                         onChange={(e) => setEditingProduct({ ...editingProduct, period: e.target.value })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                         placeholder="30天质保"
                       />
                     </div>
@@ -474,32 +466,32 @@ export default function AdminPage() {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-gray-400 block mb-1">卡密前缀 (Prefix)</label>
+                      <label className="text-neutral-300 block mb-1">卡密前缀 (Prefix)</label>
                       <input
                         type="text"
                         value={editingProduct.prefix}
                         onChange={(e) => setEditingProduct({ ...editingProduct, prefix: e.target.value.toUpperCase() })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-[var(--holo)] font-bold"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-[var(--holo)] font-bold"
                         placeholder="PH-"
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">热卖徽章</label>
+                      <label className="text-neutral-300 block mb-1">热卖徽章</label>
                       <input
                         type="text"
                         value={editingProduct.badge}
                         onChange={(e) => setEditingProduct({ ...editingProduct, badge: e.target.value })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                         placeholder="销量冠军"
                       />
                     </div>
                     <div>
-                      <label className="text-gray-400 block mb-1">库存状态标签</label>
+                      <label className="text-neutral-300 block mb-1">库存状态标签</label>
                       <select
                         value={editingProduct.stockStatus}
                         onChange={(e) => setEditingProduct({ ...editingProduct, stockStatus: e.target.value as any })}
-                        className="w-full bg-black/60 border border-[var(--line)] px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                       >
                         <option value="极速秒发">极速秒发</option>
                         <option value="充足现货">充足现货</option>
@@ -509,17 +501,17 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="text-gray-400 block mb-1">商品简述</label>
+                    <label className="text-neutral-300 block mb-1">商品简述</label>
                     <textarea
                       rows={2}
                       value={editingProduct.description}
                       onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                      className="w-full bg-black/60 border border-[var(--line)] p-2 text-white"
+                      className="w-full bg-black/50 border border-white/10 rounded p-2.5 text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="text-gray-400 block mb-1">特权清单 (每行一条特权)</label>
+                    <label className="text-neutral-300 block mb-1">特权清单 (每行一条特权)</label>
                     <textarea
                       rows={4}
                       value={editingProduct.features.join("\n")}
@@ -529,7 +521,7 @@ export default function AdminPage() {
                           features: e.target.value.split("\n").filter((f) => f.trim().length > 0),
                         })
                       }
-                      className="w-full bg-black/60 border border-[var(--line)] p-2 text-white font-mono"
+                      className="w-full bg-black/50 border border-white/10 rounded p-2.5 text-white font-mono"
                     />
                   </div>
 
@@ -539,24 +531,24 @@ export default function AdminPage() {
                       id="isPopular"
                       checked={editingProduct.isPopular || false}
                       onChange={(e) => setEditingProduct({ ...editingProduct, isPopular: e.target.checked })}
-                      className="accent-[var(--holo)]"
+                      className="accent-[var(--holo)] rounded"
                     />
                     <label htmlFor="isPopular" className="text-neutral-300">
                       设为前台重点推荐 (带冠军流光边框)
                     </label>
                   </div>
 
-                  <div className="pt-4 border-t border-[var(--line)] flex justify-end gap-3">
+                  <div className="pt-4 border-t border-white/[0.08] flex justify-end gap-3">
                     <button
                       type="button"
                       onClick={() => setEditingProduct(null)}
-                      className="px-4 py-2 border border-neutral-700 text-neutral-400 hover:text-white"
+                      className="px-4 py-2 rounded border border-neutral-700 text-neutral-400 hover:text-white"
                     >
                       取消
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2 border border-[var(--holo)] bg-cyan-950/60 hover:bg-cyan-900 text-white font-bold"
+                      className="px-5 py-2 rounded border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white font-bold"
                     >
                       保存并应用
                     </button>

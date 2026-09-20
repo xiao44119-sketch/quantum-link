@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, Cpu, Terminal, Radio, Shield } from "lucide-react";
+import { Terminal, Shield, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 interface HeaderProps {
@@ -14,54 +14,50 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
   activeTaskCount = 0,
 }) => {
   return (
-    <header className="relative z-20 border-b border-[var(--line)] bg-[var(--ink)]/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 w-full border-b border-white/[0.06] bg-[#06090e]/75 backdrop-blur-xl transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logo 与系统标识 */}
-        <div className="flex items-center space-x-3">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-9 h-9 corner-bracket bg-cyan-950/40 border border-[var(--line-strong)] flex items-center justify-center text-[var(--holo)]">
-              <Terminal className="w-5 h-5 animate-pulse" />
+        {/* Logo 区域 */}
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/10 border border-cyan-400/30 flex items-center justify-center text-[var(--holo)] shadow-[0_0_15px_rgba(0,229,216,0.15)] group-hover:shadow-[0_0_20px_rgba(0,229,216,0.3)] transition-all">
+            <Terminal className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold tracking-wider text-base text-white font-mono bg-gradient-to-r from-white via-neutral-200 to-cyan-200 bg-clip-text text-transparent">
+                QUANTUMLINK
+              </span>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-cyan-400/30 text-cyan-300 bg-cyan-950/40">
+                PRO
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-wider text-base sm:text-lg text-white font-mono">
-                  QUANTUMLINK
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 border border-[var(--holo)]/40 text-[var(--holo)] bg-cyan-950/30">
-                  v2.4-PRO
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--fg-muted)] tracking-widest uppercase font-mono">
-                AI Subscription Autonomous Dispatcher
-              </p>
-            </div>
-          </Link>
-        </div>
+            <p className="text-[10px] text-neutral-400 font-mono tracking-wider hidden sm:block">
+              Autonomous AI Provisioning Node
+            </p>
+          </div>
+        </Link>
 
-        {/* 右侧遥测监控指标与站长后台快捷入口 */}
-        <div className="flex items-center gap-3 sm:gap-5 font-mono text-xs">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-[var(--line)] bg-cyan-950/20 text-[var(--fg-muted)]">
-            <Radio className="w-3.5 h-3.5 text-[var(--holo)]" />
-            <span>NODE:</span>
-            <span className="text-white">TOKYO-BGP-01</span>
+        {/* 右侧微光指示状态 */}
+        <div className="flex items-center gap-3 font-mono text-xs">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 bg-white/[0.02]">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 signal-dot" />
+            <span className="text-neutral-400 text-[11px]">节点:</span>
+            <span className="text-neutral-200 text-[11px] font-medium">TOKYO-01</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-[var(--line)] bg-cyan-950/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 signal-dot" />
-            <span className="text-[var(--fg-muted)]">ENGINE:</span>
-            <span className={mode === "SANDBOX_SIMULATION" ? "text-amber-300 font-medium" : "text-emerald-300"}>
-              {mode === "SANDBOX_SIMULATION" ? "SANDBOX SIMULATOR" : "LIVE FULFILLMENT"}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 bg-white/[0.02]">
+            <span className="text-neutral-400 text-[11px]">引擎:</span>
+            <span className={mode === "SANDBOX_SIMULATION" ? "text-amber-300 text-[11px] font-medium" : "text-emerald-300 text-[11px]"}>
+              {mode === "SANDBOX_SIMULATION" ? "SANDBOX" : "ONLINE"}
             </span>
           </div>
 
-          {/* 站长后台快捷按钮 */}
+          {/* 站长后台入口 */}
           <Link
             href="/admin"
-            className="px-2.5 py-1.5 border border-[var(--line)] hover:border-[var(--holo)] bg-black/40 text-neutral-400 hover:text-[var(--holo)] text-[11px] inline-flex items-center gap-1.5 transition-colors"
-            title="进入站长运营后台"
+            className="px-3 py-1.5 rounded-full border border-white/10 hover:border-cyan-400/50 bg-white/[0.03] hover:bg-cyan-950/30 text-neutral-300 hover:text-cyan-200 text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm"
           >
-            <Shield className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">管理后台</span>
+            <Shield className="w-3.5 h-3.5 text-cyan-400" />
+            <span>管理后台</span>
           </Link>
         </div>
       </div>
