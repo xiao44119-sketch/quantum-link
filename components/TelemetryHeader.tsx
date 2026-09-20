@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, Cpu, Terminal, Radio } from "lucide-react";
+import { ShieldCheck, Cpu, Terminal, Radio, Shield } from "lucide-react";
+import Link from "next/link";
 
 interface HeaderProps {
   mode?: string;
@@ -17,26 +18,28 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo 与系统标识 */}
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 corner-bracket bg-cyan-950/40 border border-[var(--line-strong)] flex items-center justify-center text-[var(--holo)]">
-            <Terminal className="w-5 h-5 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold tracking-wider text-base sm:text-lg text-white font-mono">
-                QUANTUMLINK
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 border border-[var(--holo)]/40 text-[var(--holo)] bg-cyan-950/30">
-                v2.4-PRO
-              </span>
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="w-9 h-9 corner-bracket bg-cyan-950/40 border border-[var(--line-strong)] flex items-center justify-center text-[var(--holo)]">
+              <Terminal className="w-5 h-5 animate-pulse" />
             </div>
-            <p className="text-[11px] text-[var(--fg-muted)] tracking-widest uppercase font-mono">
-              AI Subscription Autonomous Dispatcher
-            </p>
-          </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold tracking-wider text-base sm:text-lg text-white font-mono">
+                  QUANTUMLINK
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 border border-[var(--holo)]/40 text-[var(--holo)] bg-cyan-950/30">
+                  v2.4-PRO
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--fg-muted)] tracking-widest uppercase font-mono">
+                AI Subscription Autonomous Dispatcher
+              </p>
+            </div>
+          </Link>
         </div>
 
-        {/* 右侧遥测监控指标 */}
-        <div className="flex items-center gap-4 sm:gap-6 font-mono text-xs">
+        {/* 右侧遥测监控指标与站长后台快捷入口 */}
+        <div className="flex items-center gap-3 sm:gap-5 font-mono text-xs">
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-[var(--line)] bg-cyan-950/20 text-[var(--fg-muted)]">
             <Radio className="w-3.5 h-3.5 text-[var(--holo)]" />
             <span>NODE:</span>
@@ -51,11 +54,15 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 px-2.5 py-1 border border-[var(--line)] bg-black/40">
-            <Cpu className="w-3.5 h-3.5 text-[var(--warm)]" />
-            <span className="text-[var(--fg-muted)]">TASKS:</span>
-            <span className="text-[var(--warm)] font-bold">{activeTaskCount}</span>
-          </div>
+          {/* 站长后台快捷按钮 */}
+          <Link
+            href="/admin"
+            className="px-2.5 py-1.5 border border-[var(--line)] hover:border-[var(--holo)] bg-black/40 text-neutral-400 hover:text-[var(--holo)] text-[11px] inline-flex items-center gap-1.5 transition-colors"
+            title="进入站长运营后台"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">管理后台</span>
+          </Link>
         </div>
       </div>
     </header>

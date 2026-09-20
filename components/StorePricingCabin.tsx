@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Sparkles, 
   Check, 
@@ -13,20 +13,47 @@ import {
   Copy, 
   MessageSquare,
   Flame,
-  CreditCard
+  CreditCard,
+  RefreshCw
 } from "lucide-react";
-import { STORE_PRODUCTS, StoreProduct } from "@/config/store-products";
+import { STORE_PRODUCTS as FALLBACK_PRODUCTS, StoreProduct } from "@/config/store-products";
 
 interface Props {
   onGoToRedeem: (prefix?: string) => void;
 }
 
 export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
+  const [products, setProducts] = useState<StoreProduct[]>(FALLBACK_PRODUCTS);
+  const [contactInfo, setContactInfo] = useState({
+    wechat: "AI-ASSIST-VIP",
+    qrNote: "扫码添加客服 / 付款",
+    noticeText: "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。"
+  });
+
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
   const [copiedWeChat, setCopiedWeChat] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // 从后端动态拉取最新商品数据
+  useEffect(() => {
+    fetch("/api/store/products")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          if (data.products && data.products.length > 0) {
+            setProducts(data.products);
+          }
+          if (data.contact) {
+            setContactInfo(data.contact);
+          }
+        }
+      })
+      .catch((e) => console.error("Fetch products failed, using fallback:", e))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleCopyWeChat = () => {
-    navigator.clipboard.writeText("AI-ASSIST-VIP");
+    navigator.clipboard.writeText(contactInfo.wechat);
     setCopiedWeChat(true);
     setTimeout(() => setCopiedWeChat(false), 2000);
   };
@@ -74,13 +101,13 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 </div>
               </div>
 
-              {/* 微信 / 支付宝收款码卡片 */}
+              {/* 收款码卡片 */}
               <div className="p-4 border border-[var(--line)] bg-black/40 text-center space-y-3">
                 <div className="w-48 h-48 mx-auto p-2.5 bg-white rounded-sm relative flex items-center justify-center shadow-lg">
                   <div className="w-full h-full border-2 border-dashed border-neutral-400 flex flex-col items-center justify-center text-neutral-800 p-2">
                     <QrCode className="w-16 h-16 text-neutral-900 mb-1" />
-                    <span className="text-[11px] font-bold text-neutral-900">扫码添加客服 / 付款</span>
-                    <span className="text-[9px] text-neutral-500">备注：{selectedProduct.id}</span>
+                    <span className="text-[11px] font-bold text-neutral-900">{contactInfo.qrNote}</span>
+                    <span className="text-[9px] text-neutral-500">备注套餐：{selectedProduct.id}</span>
                   </div>
                 </div>
 
@@ -89,7 +116,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 </p>
 
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[var(--holo)]/40 bg-cyan-950/30 text-white text-xs">
-                  <span>客服微信号: <strong className="text-[var(--holo)]">AI-ASSIST-VIP</strong></span>
+                  <span>客服微信号: <strong className="text-[var(--holo)]">{contactInfo.wechat}</strong></span>
                   <button
                     onClick={handleCopyWeChat}
                     className="text-[10px] text-[var(--warm)] hover:underline inline-flex items-center gap-0.5"
@@ -140,13 +167,13 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
           主流 AI 生产力订阅中心
         </h2>
         <p className="text-xs sm:text-sm font-mono text-[var(--fg-muted)]">
-          支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。
+          {contactInfo.noticeText}
         </p>
       </div>
 
-      {/* 三列商品卡片 */}
+      {/* 商品卡片网格 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {STORE_PRODUCTS.map((p) => (
+        {products.map((p) => (
           <div
             key={p.id}
             className={`corner-bracket border p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 relative bg-[#070b12]/90 backdrop-blur-md ${
