@@ -1,0 +1,77 @@
+export interface StoreProduct {
+  id: string;
+  title: string;
+  sub: string;
+  badge: string;
+  price: string;
+  originalPrice?: string;
+  period: string;
+  prefix: string;
+  description: string;
+  features: string[];
+  isPopular?: boolean;
+  stockStatus: "充足现货" | "库存紧张" | "极速秒发";
+}
+
+export const STORE_PRODUCTS: StoreProduct[] = [
+  {
+    id: "gpt_plus",
+    title: "ChatGPT Plus 官方代充",
+    sub: "自备账号 · 独享订阅 · 官方正规",
+    badge: "销量冠军",
+    price: "158",
+    originalPrice: "¥188",
+    period: "30天质保",
+    prefix: "PH-",
+    stockStatus: "极速秒发",
+    description: "正规海外实体卡代充，绝非低价黑卡，一人一卡安全不封号。官方完整权益，支持所有终端登录。",
+    features: [
+      "充值到您自己的 ChatGPT 账号，历史对话完整保留",
+      "独享 GPT-4o 顶配算力 & o1-preview 深度思考模型",
+      "畅享 DALL-E 3 高清作图、高级语音及 GPTs 商店",
+      "无需提供账号密码，仅凭安全会话凭证 10 秒自动到账",
+      "提供 30 天完整售后质保，翻车全额秒补",
+    ],
+    isPopular: true,
+  },
+  {
+    id: "claude_pro",
+    title: "Claude Pro 尊享月卡",
+    sub: "编程神级辅助 · 200K 长上下文",
+    badge: "开发者热荐",
+    price: "168",
+    originalPrice: "¥198",
+    period: "30天质保",
+    prefix: "CLAUDE-",
+    stockStatus: "充足现货",
+    description: "面向资深开发者的 Claude 3.5 Sonnet 顶配版，写代码、长上下文逻辑推理综合能力行业第一梯队。",
+    features: [
+      "解锁 Claude 3.5 Sonnet 满血模型调用",
+      "支持 Artifacts 动态交互式前端实时预览",
+      "200K 超长 Token 上下文，整套项目代码库直接分析",
+      "支持官方网页版及手机端客户端无缝使用",
+      "独享正规渠道代开，提供全程售后服务保障",
+    ],
+    isPopular: false,
+  },
+  {
+    id: "gpt_pro_20x",
+    title: "ChatGPT Pro 算力旗舰版",
+    sub: "工业级吞吐 · 20倍顶格并发",
+    badge: "算力怪兽",
+    price: "688",
+    originalPrice: "¥899",
+    period: "月卡 / 20x配额",
+    prefix: "PRO20SPECIAL-",
+    stockStatus: "极速秒发",
+    description: "针对重度工程生产集群、长文本连续调用打造的旗舰套餐，拥有 20 倍于普通版的工业级吞吐限制。",
+    features: [
+      "20 倍于标准 Plus 的请求频次配额，高峰期不锁频",
+      "优先专线响应通道，亚太 BGP 专线直达",
+      "专为长上下文、高密度写码及高频次推理设计",
+      "支持首开全新号与已过期历史老号重新激活",
+      "专属 VIP 客服 1 对 1 履约与开票支持",
+    ],
+    isPopular: false,
+  },
+];
