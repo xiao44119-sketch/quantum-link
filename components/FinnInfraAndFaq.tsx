@@ -13,11 +13,20 @@ import {
   Lock, 
   CheckCircle2,
   Terminal,
-  ExternalLink
+  MessageSquare,
+  Copy,
+  Check
 } from "lucide-react";
 
 export const FinnInfraAndFaq: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText("AI-ASSIST-VIP");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const faqs = [
     {
@@ -150,7 +159,7 @@ export const FinnInfraAndFaq: React.FC = () => {
         </div>
       </div>
 
-      {/* 模块 C：Finn 个人独立实验室签名卡 */}
+      {/* 模块 C：Finn 个人独立实验室签名卡（彻底去除 GitHub 源码链接，改为商业级官方客服） */}
       <div className="glass-card corner-bracket p-6 sm:p-8 rounded-lg border border-cyan-400/20 bg-gradient-to-r from-cyan-950/30 via-[#070d16]/80 to-amber-950/20 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-2 text-center md:text-left">
           <div className="inline-flex items-center gap-2 text-[11px] text-[var(--warm)] font-bold">
@@ -166,15 +175,14 @@ export const FinnInfraAndFaq: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
-          <a
-            href="https://github.com/xiao44119-sketch/quantum-link"
-            target="_blank"
-            rel="noreferrer"
-            className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 bg-black/40 text-xs text-white transition-all inline-flex items-center gap-1.5"
+          <button
+            onClick={handleCopy}
+            className="px-5 py-2.5 rounded-full border border-[var(--holo)] bg-cyan-950/60 hover:bg-cyan-900 text-xs text-white transition-all inline-flex items-center gap-2 shadow-[0_0_15px_rgba(0,229,216,0.2)] font-bold"
           >
-            <span>GitHub 源码</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+            <MessageSquare className="w-3.5 h-3.5 text-[var(--holo)]" />
+            <span>{copied ? "微信号已复制！" : "官方微信: AI-ASSIST-VIP"}</span>
+            {copied && <Check className="w-3 h-3 text-emerald-400" />}
+          </button>
         </div>
       </div>
     </div>
