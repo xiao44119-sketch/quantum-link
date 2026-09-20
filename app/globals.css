@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --ink: #05070a;
+  --ink-card: rgba(8, 14, 22, 0.82);
+  --fg: #eaf8f7;
+  --fg-muted: #859a99;
+  --holo: #00d4c8;
+  --holo-glow: rgba(0, 212, 200, 0.45);
+  --warm: #ffb37f;
+  --warm-glow: rgba(255, 179, 127, 0.45);
+  --line: rgba(143, 233, 255, 0.16);
+  --line-strong: rgba(143, 233, 255, 0.38);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--ink);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+/* 全息背景扫描线与仪器屏感 */
+.screen-lines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(200, 216, 255, 0.02) 0 1px,
+    transparent 1px 3px
+  ),
+  radial-gradient(125% 100% at 50% 30%, transparent 60%, rgba(2, 4, 8, 0.65) 100%);
+}
+
+.hud-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(143, 233, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(143, 233, 255, 0.05) 1px, transparent 1px);
+}
+
+/* 机械四角 HUD 准星装饰 */
+.corner-bracket {
+  position: relative;
+}
+.corner-bracket::before,
+.corner-bracket::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--holo);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+.corner-bracket::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.corner-bracket::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+.corner-bracket:hover::before {
+  top: -3px;
+  left: -3px;
+  box-shadow: 0 0 8px var(--holo-glow);
+}
+.corner-bracket:hover::after {
+  bottom: -3px;
+  right: -3px;
+  box-shadow: 0 0 8px var(--holo-glow);
+}
+
+/* 暖金款角标 */
+.corner-bracket-warm::before,
+.corner-bracket-warm::after {
+  border-color: var(--warm);
+}
+.corner-bracket-warm:hover::before,
+.corner-bracket-warm:hover::after {
+  box-shadow: 0 0 8px var(--warm-glow);
+}
+
+/* 激光流光扫描线 */
+@keyframes laserSweep {
+  0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(200%) skewX(-15deg); opacity: 0; }
+}
+
+.laser-sweeper {
+  position: relative;
+  overflow: hidden;
+}
+.laser-sweeper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(143, 233, 255, 0.25),
+    rgba(255, 255, 255, 0.6),
+    rgba(143, 233, 255, 0.25),
+    transparent
+  );
+  transform: translateX(-100%) skewX(-15deg);
+  pointer-events: none;
+}
+.laser-sweeper:hover::after {
+  animation: laserSweep 0.75s ease-out both;
+}
+
+/* 脉冲指示灯 */
+@keyframes signalBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+.signal-dot {
+  animation: signalBlink 2s ease-in-out infinite;
 }
