@@ -4,6 +4,8 @@ import { STORE_PRODUCTS, StoreProduct } from "@/config/store-products";
 
 export interface StoreContact {
   wechat: string;
+  qrCodeImage?: string; // 收款 / 个人客服二维码图片 (URL 或 base64)
+  wechatGroupQr?: string; // 微信交流群二维码图片 (URL 或 base64)
   wechatGroupTitle?: string;
   wechatGroupNote?: string;
   qqGroup?: string;

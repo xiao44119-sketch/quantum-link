@@ -318,20 +318,34 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateTab }) => {
 
             <div className="space-y-4 text-center font-mono">
               {/* 二维码展示区 */}
-              <div className="w-44 h-44 mx-auto p-2 bg-white rounded shadow-md flex items-center justify-center">
-                <div className="w-full h-full border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-800 p-2">
-                  <QrCode className="w-16 h-16 text-neutral-900 mb-1" />
-                  <span className="text-[11px] font-bold text-neutral-900">
-                    {activeModal === "wechat" && "微信扫码直接咨询"}
-                    {activeModal === "wechatGroup" && "扫码受邀进入交流群"}
-                    {activeModal === "qq" && "QQ 扫码一键加入"}
-                  </span>
-                  <span className="text-[9px] text-neutral-500 mt-0.5">
-                    {activeModal === "wechat" && `微信号: ${contact.wechat}`}
-                    {activeModal === "wechatGroup" && "官方认证 · 技术交流"}
-                    {activeModal === "qq" && `群号: ${contact.qqGroup}`}
-                  </span>
-                </div>
+              <div className="w-48 h-48 mx-auto p-2 bg-white rounded shadow-md flex items-center justify-center overflow-hidden">
+                {activeModal === "wechat" && contact.qrCodeImage ? (
+                  <img
+                    src={contact.qrCodeImage}
+                    alt="客服微信二维码"
+                    className="w-full h-full object-contain"
+                  />
+                ) : activeModal === "wechatGroup" && contact.wechatGroupQr ? (
+                  <img
+                    src={contact.wechatGroupQr}
+                    alt="微信交流群二维码"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-full border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-800 p-2">
+                    <QrCode className="w-16 h-16 text-neutral-900 mb-1" />
+                    <span className="text-[11px] font-bold text-neutral-900">
+                      {activeModal === "wechat" && "微信扫码直接咨询"}
+                      {activeModal === "wechatGroup" && "扫码受邀进入交流群"}
+                      {activeModal === "qq" && "QQ 扫码一键加入"}
+                    </span>
+                    <span className="text-[9px] text-neutral-500 mt-0.5">
+                      {activeModal === "wechat" && `微信号: ${contact.wechat}`}
+                      {activeModal === "wechatGroup" && "官方认证 · 技术交流"}
+                      {activeModal === "qq" && `群号: ${contact.qqGroup}`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* 关键信息与一键复制 */}

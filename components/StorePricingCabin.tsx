@@ -270,12 +270,25 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
 
                 {/* 收款二维码与特征区 */}
                 <div className="p-4 border border-[var(--line)] bg-black/40 rounded-sm text-center space-y-3 relative">
-                  <div className="w-44 h-44 mx-auto p-2 bg-white rounded shadow-md relative flex items-center justify-center">
-                    <div className="w-full h-full border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-800 p-2">
-                      <QrCode className="w-16 h-16 text-neutral-900 mb-1" />
-                      <span className="text-[11px] font-bold text-neutral-900">{contactInfo.qrNote}</span>
-                      <span className="text-[9px] text-neutral-500 mt-0.5">订单识别码: {activeOrder.orderId}</span>
-                    </div>
+                  <div className="w-48 h-48 mx-auto p-2 bg-white rounded shadow-md relative flex items-center justify-center">
+                    {contactInfo.qrCodeImage ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center relative">
+                        <img 
+                          src={contactInfo.qrCodeImage} 
+                          alt="付款二维码" 
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute -bottom-1 bg-black/80 px-2 py-0.5 rounded text-[9px] font-mono text-cyan-200 border border-white/10">
+                          {contactInfo.qrNote || "扫码付款"} · 识别码: {activeOrder.orderId.slice(-6)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full border border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-800 p-2">
+                        <QrCode className="w-16 h-16 text-neutral-900 mb-1" />
+                        <span className="text-[11px] font-bold text-neutral-900">{contactInfo.qrNote}</span>
+                        <span className="text-[9px] text-neutral-500 mt-0.5">订单识别码: {activeOrder.orderId}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-center gap-2 text-neutral-400 text-[11px]">

@@ -18,7 +18,9 @@ import {
   Flame,
   Layers,
   Settings,
-  X
+  X,
+  Upload,
+  ImageIcon
 } from "lucide-react";
 import { StoreProduct } from "@/config/store-products";
 
@@ -27,6 +29,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingField, setUploadingField] = useState<"qrCodeImage" | "wechatGroupQr" | null>(null);
 
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [contact, setContact] = useState<any>({
@@ -104,6 +107,36 @@ export default function AdminPage() {
       showToast("error", "保存遇到网络错误");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUploadQr = async (field: "qrCodeImage" | "wechatGroupQr", file: File) => {
+    if (!file) return;
+    setUploadingField(field);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const resp = await fetch("/api/admin/upload", {
+        method: "POST",
+        headers: {
+          "x-admin-secret": authKey.trim(),
+        },
+        body: formData,
+      });
+
+      const res = await resp.json();
+      if (resp.ok && res.url) {
+        const updatedContact = { ...contact, [field]: res.url };
+        setContact(updatedContact);
+        showToast("success", `${field === "qrCodeImage" ? "收款/客服二维码" : "微信群二维码"}已上传！记得点击右上角保存。`);
+      } else {
+        showToast("error", res.error || "上传失败");
+      }
+    } catch (e: any) {
+      showToast("error", "上传请求异常: " + e.message);
+    } finally {
+      setUploadingField(null);
     }
   };
 
@@ -349,6 +382,167 @@ export default function AdminPage() {
                   onChange={(e) => setContact({ ...contact, noticeText: e.target.value })}
                   className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
                 />
+              </div>
+            </div>
+
+            {/* 二维码图片上传与预览专区 */}
+            <div className="pt-5 border-t border-white/[0.08] space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-white">
+                <QrCode className="w-4 h-4 text-cyan-400" />
+                <span>二维码图片设置（本地上传或直链）</span>
+                <span className="text-[10px] text-neutral-400 font-normal">
+                  - 上传后前台收银台与底部弹窗将真实展示该二维码
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* 1. 客服微信 / 收款二维码 */}
+                <div className="p-4 border border-white/10 bg-black/40 rounded-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-white text-xs block">① 客服微信 / 收款二维码</span>
+                      <span className="text-[10px] text-neutral-400">展示于：前台收银台扫码、底部客服微信弹窗</span>
+                    </div>
+                    {contact.qrCodeImage && (
+                      <button
+                        type="button"
+                        onClick={() => setContact({ ...contact, qrCodeImage: "" })}
+                        className="text-red-400 hover:text-red-300 text-[10px] inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>移除图片</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {/* 图片预览 */}
+                    <div className="w-24 h-24 flex-shrink-0 bg-white rounded border border-neutral-300 flex items-center justify-center overflow-hidden p-1 shadow-inner relative">
+                      {contact.qrCodeImage ? (
+                        <img
+                          src={contact.qrCodeImage}
+                          alt="客服二维码预览"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center p-1 text-neutral-400">
+                          <QrCode className="w-7 h-7 mx-auto mb-1 text-neutral-300" />
+                          <span className="text-[8px] block text-neutral-500">默认图标</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 上传操作 */}
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="upload-qr-customer"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadQr("qrCodeImage", f);
+                        }}
+                      />
+                      <label
+                        htmlFor="upload-qr-customer"
+                        className="px-3 py-2 border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900 text-cyan-200 rounded text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors w-full"
+                      >
+                        {uploadingField === "qrCodeImage" ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        <span>{uploadingField === "qrCodeImage" ? "正在上传..." : "选择本地收款码图片上传"}</span>
+                      </label>
+
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] text-neutral-400 block">或粘贴图片网络直链:</span>
+                        <input
+                          type="text"
+                          value={contact.qrCodeImage || ""}
+                          onChange={(e) => setContact({ ...contact, qrCodeImage: e.target.value })}
+                          placeholder="例如: https://... 或 /uploads/..."
+                          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:border-[var(--holo)] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. 微信交流群二维码 */}
+                <div className="p-4 border border-white/10 bg-black/40 rounded-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-white text-xs block">② 微信交流群二维码</span>
+                      <span className="text-[10px] text-neutral-400">展示于：前台底部“微信交流群”扫码进群弹窗</span>
+                    </div>
+                    {contact.wechatGroupQr && (
+                      <button
+                        type="button"
+                        onClick={() => setContact({ ...contact, wechatGroupQr: "" })}
+                        className="text-red-400 hover:text-red-300 text-[10px] inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>移除图片</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {/* 图片预览 */}
+                    <div className="w-24 h-24 flex-shrink-0 bg-white rounded border border-neutral-300 flex items-center justify-center overflow-hidden p-1 shadow-inner relative">
+                      {contact.wechatGroupQr ? (
+                        <img
+                          src={contact.wechatGroupQr}
+                          alt="微信群二维码预览"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center p-1 text-neutral-400">
+                          <QrCode className="w-7 h-7 mx-auto mb-1 text-neutral-300" />
+                          <span className="text-[8px] block text-neutral-500">默认图标</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 上传操作 */}
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="upload-qr-group"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadQr("wechatGroupQr", f);
+                        }}
+                      />
+                      <label
+                        htmlFor="upload-qr-group"
+                        className="px-3 py-2 border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900 text-emerald-200 rounded text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors w-full"
+                      >
+                        {uploadingField === "wechatGroupQr" ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        <span>{uploadingField === "wechatGroupQr" ? "正在上传..." : "选择本地群二维码图片上传"}</span>
+                      </label>
+
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] text-neutral-400 block">或粘贴图片网络直链:</span>
+                        <input
+                          type="text"
+                          value={contact.wechatGroupQr || ""}
+                          onChange={(e) => setContact({ ...contact, wechatGroupQr: e.target.value })}
+                          placeholder="例如: https://... 或 /uploads/..."
+                          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:border-emerald-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

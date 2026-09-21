@@ -21,9 +21,21 @@ import {
 export const FinnInfraAndFaq: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [copied, setCopied] = useState(false);
+  const [wechat, setWechat] = useState("AI-ASSIST-VIP");
+
+  React.useEffect(() => {
+    fetch("/api/store/products")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.contact?.wechat) {
+          setWechat(data.contact.wechat);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("AI-ASSIST-VIP");
+    navigator.clipboard.writeText(wechat);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -180,7 +192,7 @@ export const FinnInfraAndFaq: React.FC = () => {
             className="px-5 py-2.5 rounded-full border border-[var(--holo)] bg-cyan-950/60 hover:bg-cyan-900 text-xs text-white transition-all inline-flex items-center gap-2 shadow-[0_0_15px_rgba(0,229,216,0.2)] font-bold"
           >
             <MessageSquare className="w-3.5 h-3.5 text-[var(--holo)]" />
-            <span>{copied ? "微信号已复制！" : "官方微信: AI-ASSIST-VIP"}</span>
+            <span>{copied ? "微信号已复制！" : `官方微信: ${wechat}`}</span>
             {copied && <Check className="w-3 h-3 text-emerald-400" />}
           </button>
         </div>

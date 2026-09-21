@@ -1,7 +1,7 @@
 {
   "adminSecret": "admin888",
   "contact": {
-    "wechat": "AI-ASSIST-VIP",
+    "wechat": "18300425760",
     "wechatGroupTitle": "Finn 极客 AI 交流群",
     "wechatGroupNote": "扫码添加客服微信后发送【加群】，即可受邀进入 VIP 交流群",
     "qqGroup": "837192045",
@@ -11,7 +11,7 @@
     "email": "support@quantum-link.io",
     "qrNote": "扫码添加客服 / 付款",
     "noticeText": "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。",
-    "handlingFeePercent": 2,
+    "handlingFeePercent": 1,
     "handlingFeeMin": 1
   },
   "products": [
@@ -67,6 +67,38 @@
       "stockStatus": "极速秒发",
       "description": "下单加站主vx联系",
       "features": [],
+      "isPopular": false
+    },
+    {
+      "id": "product_muamra71",
+      "title": "vpn好用实惠线路",
+      "sub": "自备账号 · 独享正规",
+      "badge": "全新上架",
+      "price": "2",
+      "originalPrice": "30",
+      "period": "30天质保",
+      "prefix": "PH-",
+      "stockStatus": "极速秒发",
+      "description": "可用做备用渠道低价实惠稳定好用站主一直在用的有1元一月有10元一月的网速稳定性还秒杀市面上30r一月的。",
+      "features": [],
+      "isPopular": false
+    },
+    {
+      "id": "product_muamwjc5",
+      "title": "接码国外手机号",
+      "sub": "自备账号 · 独享正规",
+      "badge": "全新上架",
+      "price": "5",
+      "originalPrice": "15¥",
+      "period": "30天质保",
+      "prefix": "PH-",
+      "stockStatus": "极速秒发",
+      "description": "各区都有小白手可向日葵远程帮操作或教会",
+      "features": [
+        "官方正规代充，独立独享",
+        "10秒全自动下发激活",
+        "提供 30 天售后质保"
+      ],
       "isPopular": false
     }
   ]
