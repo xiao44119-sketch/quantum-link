@@ -229,13 +229,15 @@ export default function AdminPage() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="text-xs text-neutral-300 block mb-1.5">管理员口令 (DEFAULT: admin888)</label>
+                <label className="text-xs text-neutral-300 block mb-1.5 font-mono">
+                  安全管理口令 (ADMIN ACCESS KEY)
+                </label>
                 <input
                   type="password"
                   value={authKey}
                   onChange={(e) => setAuthKey(e.target.value)}
-                  placeholder="请输入密钥..."
-                  className="w-full bg-black/50 border border-white/10 hover:border-white/20 focus:border-[var(--holo)] rounded-md px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
+                  placeholder="请输入管理员安全密钥..."
+                  className="w-full bg-black/50 border border-white/10 hover:border-white/20 focus:border-[var(--holo)] rounded-md px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono"
                   autoFocus
                   required
                 />
