@@ -29,10 +29,14 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
 
   const [products, setProducts] = useState<StoreProduct[]>([]);
-  const [contact, setContact] = useState({
+  const [contact, setContact] = useState<any>({
     wechat: "AI-ASSIST-VIP",
+    wechatGroupTitle: "Finn 极客 AI 交流群",
+    qqGroup: "837192045",
+    telegramChannel: "https://t.me/finn_vibe_link",
     qrNote: "扫码添加客服 / 付款",
-    noticeText: "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。"
+    noticeText: "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。",
+    handlingFeePercent: 2.0
   });
 
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
@@ -289,6 +293,50 @@ export default function AdminPage() {
                   type="text"
                   value={contact.qrNote}
                   onChange={(e) => setContact({ ...contact, qrNote: e.target.value })}
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-neutral-400 block mb-1.5">支付网关手续费率 (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={contact.handlingFeePercent ?? 2.0}
+                  onChange={(e) => setContact({ ...contact, handlingFeePercent: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-neutral-400 block mb-1.5">微信交流群名称</label>
+                <input
+                  type="text"
+                  value={contact.wechatGroupTitle || ""}
+                  onChange={(e) => setContact({ ...contact, wechatGroupTitle: e.target.value })}
+                  placeholder="例如：Finn 极客 AI 交流群"
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-neutral-400 block mb-1.5">QQ 交流群号</label>
+                <input
+                  type="text"
+                  value={contact.qqGroup || ""}
+                  onChange={(e) => setContact({ ...contact, qqGroup: e.target.value })}
+                  placeholder="例如：837192045"
+                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-neutral-400 block mb-1.5">Telegram 官方频道链接</label>
+                <input
+                  type="text"
+                  value={contact.telegramChannel || ""}
+                  onChange={(e) => setContact({ ...contact, telegramChannel: e.target.value })}
+                  placeholder="https://t.me/..."
                   className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
                 />
               </div>

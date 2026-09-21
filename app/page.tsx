@@ -7,6 +7,7 @@ import { StorePricingCabin } from "@/components/StorePricingCabin";
 import { FulfillmentConsole } from "@/components/FulfillmentConsole";
 import { OrderQueryCabin } from "@/components/OrderQueryCabin";
 import { FinnInfraAndFaq } from "@/components/FinnInfraAndFaq";
+import { Footer } from "@/components/Footer";
 import { 
   ShoppingCart, 
   Terminal, 
@@ -137,19 +138,10 @@ export default function Home() {
 
         {/* Finn 节点基础设施与 FAQ 深度内容区（解决页面空旷问题） */}
         <FinnInfraAndFaq />
-
-        {/* 底部保障与全局说明 */}
-        <footer className="mt-20 pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between font-mono text-xs text-neutral-500 gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-[var(--holo)] rounded-full" />
-            <span>QUANTUM LINK PROTOCOL · CRAFTED BY 骁清 FINN</span>
-          </div>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>NODE: TOKYO BGP / CLOUDFLARE WARP</span>
-            <span>SHANGHAI TIME: UTC+8</span>
-          </div>
-        </footer>
       </main>
+
+      {/* 全宽底部社区与多渠道支持中心 */}
+      <Footer onNavigateTab={(tab) => setCurrentTab(tab)} />
     </div>
   );
 }

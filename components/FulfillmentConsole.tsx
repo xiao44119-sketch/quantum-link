@@ -47,10 +47,14 @@ export const FulfillmentConsole: React.FC<Props> = ({
 
   useEffect(() => {
     if (presetPrefix) {
-      setCardCode((prev) => {
-        if (!prev) return presetPrefix + "DEMO-8888-9999";
-        return presetPrefix + prev.replace(/^[A-Za-z0-9]+-?/, "");
-      });
+      if (presetPrefix.includes("-") && presetPrefix.length >= 10) {
+        setCardCode(presetPrefix);
+      } else {
+        setCardCode((prev) => {
+          if (!prev) return presetPrefix + "DEMO-8888-9999";
+          return presetPrefix + prev.replace(/^[A-Za-z0-9]+-?/, "");
+        });
+      }
     }
   }, [presetPrefix]);
 

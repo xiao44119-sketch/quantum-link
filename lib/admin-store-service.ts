@@ -2,13 +2,24 @@ import fs from "fs";
 import path from "path";
 import { STORE_PRODUCTS, StoreProduct } from "@/config/store-products";
 
+export interface StoreContact {
+  wechat: string;
+  wechatGroupTitle?: string;
+  wechatGroupNote?: string;
+  qqGroup?: string;
+  qqGroupUrl?: string;
+  telegramChannel?: string;
+  telegramGroup?: string;
+  email?: string;
+  qrNote: string;
+  noticeText: string;
+  handlingFeePercent?: number; // e.g. 2.0 (2%)
+  handlingFeeMin?: number; // e.g. 1.0 (¥1)
+}
+
 export interface StoreAdminData {
   adminSecret: string;
-  contact: {
-    wechat: string;
-    qrNote: string;
-    noticeText: string;
-  };
+  contact: StoreContact;
   products: StoreProduct[];
 }
 

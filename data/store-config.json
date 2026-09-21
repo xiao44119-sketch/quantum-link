@@ -2,8 +2,17 @@
   "adminSecret": "admin888",
   "contact": {
     "wechat": "AI-ASSIST-VIP",
+    "wechatGroupTitle": "Finn 极客 AI 交流群",
+    "wechatGroupNote": "扫码添加客服微信后发送【加群】，即可受邀进入 VIP 交流群",
+    "qqGroup": "837192045",
+    "qqGroupUrl": "https://qm.qq.com/cgi-bin/qm/qr?k=demo",
+    "telegramChannel": "https://t.me/finn_vibe_link",
+    "telegramGroup": "https://t.me/finn_vibe_chat",
+    "email": "support@quantum-link.io",
     "qrNote": "扫码添加客服 / 付款",
-    "noticeText": "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。"
+    "noticeText": "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。",
+    "handlingFeePercent": 2,
+    "handlingFeeMin": 1
   },
   "products": [
     {
@@ -11,11 +20,11 @@
       "title": "ChatGPT Plus 官方代充",
       "sub": "自备账号 · 独享订阅 · 官方正规",
       "badge": "销量冠军",
-      "price": "158",
-      "originalPrice": "¥188",
+      "price": "140",
+      "originalPrice": "155",
       "period": "30天质保",
       "prefix": "PH-",
-      "stockStatus": "极速秒发",
+      "stockStatus": "充足现货",
       "description": "正规海外实体卡代充，绝非低价黑卡，一人一卡安全不封号。官方完整权益，支持所有终端登录。",
       "features": [
         "充值到您自己的 ChatGPT 账号，历史对话完整保留",
@@ -48,22 +57,16 @@
     },
     {
       "id": "gpt_pro_20x",
-      "title": "ChatGPT Pro 算力旗舰版",
-      "sub": "工业级吞吐 · 20倍顶格并发",
+      "title": "step阶跃星辰",
+      "sub": "step5review模型",
       "badge": "算力怪兽",
-      "price": "688",
-      "originalPrice": "¥899",
-      "period": "月卡 / 20x配额",
+      "price": "1",
+      "originalPrice": "59",
+      "period": "月卡 / 半月到2月",
       "prefix": "PRO20SPECIAL-",
       "stockStatus": "极速秒发",
-      "description": "针对重度工程生产集群、长文本连续调用打造的旗舰套餐，拥有 20 倍于普通版的工业级吞吐限制。",
-      "features": [
-        "20 倍于标准 Plus 的请求频次配额，高峰期不锁频",
-        "优先专线响应通道，亚太 BGP 专线直达",
-        "专为长上下文、高密度写码及高频次推理设计",
-        "支持首开全新号与已过期历史老号重新激活",
-        "专属 VIP 客服 1 对 1 履约与开票支持"
-      ],
+      "description": "下单加站主vx联系",
+      "features": [],
       "isPopular": false
     }
   ]
