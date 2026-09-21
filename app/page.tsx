@@ -55,50 +55,53 @@ export default function Home() {
       <LiveActivityFeed />
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
-        {/* 全息浮动胶囊导航 */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/[0.08] pb-6 mb-10">
-          <div className="flex items-center p-1 border border-white/10 bg-[#090e16]/80 backdrop-blur-md rounded-full shadow-lg">
+        {/* 现代极简浮动胶囊导航 */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/[0.06] pb-5 mb-8">
+          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center p-1 border border-white/10 bg-[#090e16]/90 backdrop-blur-md rounded-xl sm:rounded-full shadow-lg">
             <button
               onClick={() => setCurrentTab("store")}
-              className={`px-5 py-2 rounded-full font-mono text-xs font-bold transition-all flex items-center gap-2 ${
+              className={`px-2 sm:px-5 py-2 rounded-lg sm:rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                 currentTab === "store"
-                  ? "bg-cyan-950/80 text-white border border-[var(--holo)]/80 shadow-[0_0_16px_rgba(0,229,216,0.3)]"
+                  ? "bg-cyan-950/90 text-white border border-[var(--holo)]/70 shadow-[0_0_15px_rgba(0,229,216,0.25)] font-bold"
                   : "text-neutral-400 hover:text-white border border-transparent"
               }`}
             >
-              <ShoppingCart className="w-3.5 h-3.5 text-[var(--holo)]" />
-              <span>01. 订阅套餐选购 (STORE)</span>
+              <ShoppingCart className="w-3.5 h-3.5 text-[var(--holo)] flex-shrink-0" />
+              <span className="hidden sm:inline">01. 订阅套餐选购</span>
+              <span className="sm:hidden">选购套餐</span>
             </button>
 
             <button
               onClick={() => setCurrentTab("redeem")}
-              className={`px-5 py-2 rounded-full font-mono text-xs font-bold transition-all flex items-center gap-2 ${
+              className={`px-2 sm:px-5 py-2 rounded-lg sm:rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                 currentTab === "redeem"
-                  ? "bg-amber-950/80 text-white border border-[var(--warm)]/80 shadow-[0_0_16px_rgba(255,184,133,0.3)]"
+                  ? "bg-amber-950/90 text-white border border-[var(--warm)]/70 shadow-[0_0_15px_rgba(255,184,133,0.25)] font-bold"
                   : "text-neutral-400 hover:text-white border border-transparent"
               }`}
             >
-              <Terminal className="w-3.5 h-3.5 text-[var(--warm)]" />
-              <span>02. 自助激活开通 (REDEEM)</span>
+              <Terminal className="w-3.5 h-3.5 text-[var(--warm)] flex-shrink-0" />
+              <span className="hidden sm:inline">02. 自助激活开通</span>
+              <span className="sm:hidden">自助激活</span>
             </button>
 
             <button
               onClick={() => setCurrentTab("query")}
-              className={`px-5 py-2 rounded-full font-mono text-xs font-bold transition-all flex items-center gap-2 ${
+              className={`px-2 sm:px-5 py-2 rounded-lg sm:rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                 currentTab === "query"
-                  ? "bg-purple-950/80 text-white border border-purple-400/80 shadow-[0_0_16px_rgba(192,132,252,0.3)]"
+                  ? "bg-purple-950/90 text-white border border-purple-400/70 shadow-[0_0_15px_rgba(192,132,252,0.25)] font-bold"
                   : "text-neutral-400 hover:text-white border border-transparent"
               }`}
             >
-              <Search className="w-3.5 h-3.5 text-purple-400" />
-              <span>03. 进度凭证查询 (TRACE)</span>
+              <Search className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+              <span className="hidden sm:inline">03. 履约凭据查询</span>
+              <span className="sm:hidden">凭据查询</span>
             </button>
           </div>
 
           <div className="hidden lg:flex items-center gap-4 text-xs font-mono text-neutral-400">
             <span className="flex items-center gap-2 px-3.5 py-1.5 border border-white/5 bg-white/[0.02] rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400 signal-dot" />
-              <span>FINN DISPATCH CLUSTER · ALL SYSTEMS NOMINAL</span>
+              <span>DISPATCH CLUSTER · ALL SYSTEMS NOMINAL</span>
             </span>
           </div>
         </div>
