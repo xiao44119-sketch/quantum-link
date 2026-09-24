@@ -302,10 +302,10 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                   <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-neutral-400 text-[11px]">
                     <span className="flex items-center gap-1.5 text-emerald-400">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>全托管官方收银 · 零手续费</span>
+                      <span>官方正规直充 · 零手续费</span>
                     </span>
-                    <span className="text-[10px] text-cyan-300 font-mono">
-                      {activeOrder.isSandbox ? "沙盒联调模式" : "苏哲托管专线"}
+                    <span className="text-[10px] text-neutral-400">
+                      一人一卡 · 自动秒发
                     </span>
                   </div>
                 </div>
