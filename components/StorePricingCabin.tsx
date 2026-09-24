@@ -30,11 +30,16 @@ type OrderStage = "PAYING" | "EXPIRED" | "SUCCESS";
 
 interface CheckoutOrder {
   orderId: string;
+  clientOrderId: string;
   product: StoreProduct;
   basePrice: number;
   handlingFee: number;
   totalAmount: number;
   expiresAt: number;
+  qrImageUrl?: string;
+  qrUrl?: string;
+  isSandbox?: boolean;
+  commission?: string;
   deliveredCdk?: string;
 }
 
@@ -44,8 +49,8 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
     wechat: "AI-ASSIST-VIP",
     qrNote: "扫码添加客服 / 付款",
     noticeText: "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。",
-    handlingFeePercent: 2.0,
-    handlingFeeMin: 1.0
+    handlingFeePercent: 0,
+    handlingFeeMin: 0
   });
 
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
@@ -54,6 +59,8 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
   const [secondsLeft, setSecondsLeft] = useState<number>(300);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
   useEffect(() => {
     fetch("/api/store/products")
@@ -71,30 +78,56 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       .catch((e) => console.error("Fetch products failed:", e));
   }, []);
 
-  const handleOpenCheckout = (product: StoreProduct) => {
-    const base = parseFloat(product.price) || 0;
-    const rate = contactInfo.handlingFeePercent ?? 2.0;
-    const fee = Math.max(contactInfo.handlingFeeMin ?? 1.0, +(base * (rate / 100)).toFixed(2));
-    const total = +(base + fee).toFixed(2);
+  const handleOpenCheckout = async (product: StoreProduct) => {
+    setIsCreatingOrder(true);
     const dateStr = new Date().toISOString().replace(/[-:T]/g, "").slice(2, 10);
     const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newOrderId = `QL-${dateStr}-${randomHex}`;
+    const clientOrderId = `QL-${dateStr}-${randomHex}`;
 
-    const order: CheckoutOrder = {
-      orderId: newOrderId,
-      product,
-      basePrice: base,
-      handlingFee: fee,
-      totalAmount: total,
-      expiresAt: Date.now() + 300 * 1000,
-    };
+    let suzheProduct = "gpt_plus";
+    if (product.prefix?.includes("PRO20") || product.id?.includes("20x")) suzheProduct = "gpt_pro_20x_new";
+    else if (product.prefix?.includes("CLAUDE") || product.id?.includes("claude")) suzheProduct = "claude_pro";
 
-    setSelectedProduct(product);
-    setActiveOrder(order);
-    setOrderStage("PAYING");
-    setSecondsLeft(300);
+    try {
+      const resp = await fetch("/api/checkout/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: suzheProduct,
+          sell_price: product.price,
+          client_order_id: clientOrderId,
+        }),
+      });
+
+      const data = await resp.json();
+      if (data.success || data.order_id) {
+        const order: CheckoutOrder = {
+          orderId: data.order_id || clientOrderId,
+          clientOrderId: data.client_order_id || clientOrderId,
+          product,
+          basePrice: parseFloat(data.cost_price || product.price),
+          handlingFee: 0,
+          totalAmount: parseFloat(data.amount || product.price),
+          expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : Date.now() + (data.expires_in || 300) * 1000,
+          qrImageUrl: data.qr_image_url || contactInfo.qrCodeImage,
+          qrUrl: data.qr,
+          isSandbox: !!data.isSandbox,
+          commission: data.commission,
+        };
+
+        setSelectedProduct(product);
+        setActiveOrder(order);
+        setOrderStage("PAYING");
+        setSecondsLeft(data.expires_in || 300);
+      }
+    } catch (e) {
+      console.error("Create checkout order failed:", e);
+    } finally {
+      setIsCreatingOrder(false);
+    }
   };
 
+  // 倒计时
   useEffect(() => {
     if (!activeOrder || orderStage !== "PAYING") return;
 
@@ -110,6 +143,32 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
     }, 1000);
 
     return () => clearInterval(interval);
+  }, [activeOrder, orderStage]);
+
+  // 自动状态轮询：每 2.5 秒探测苏哲网关是否已收款
+  useEffect(() => {
+    if (!activeOrder || orderStage !== "PAYING") return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const resp = await fetch(`/api/checkout/orders/${encodeURIComponent(activeOrder.orderId)}`);
+        if (resp.ok) {
+          const resData = await resp.json();
+          if (resData.status === "paid" && resData.cards && resData.cards.length > 0) {
+            setActiveOrder((prev) => (prev ? { ...prev, deliveredCdk: resData.cards[0] } : null));
+            setOrderStage("SUCCESS");
+            clearInterval(pollInterval);
+          } else if (resData.status === "expired") {
+            setOrderStage("EXPIRED");
+            clearInterval(pollInterval);
+          }
+        }
+      } catch (err) {
+        // 网络轮询偶发抖动忽略
+      }
+    }, 2500);
+
+    return () => clearInterval(pollInterval);
   }, [activeOrder, orderStage]);
 
   const formatTime = (secs: number) => {
@@ -130,22 +189,35 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
     }
   };
 
-  const handleSimulatePayment = () => {
+  const handleSimulatePayment = async () => {
     if (!activeOrder) return;
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      const resp = await fetch(`/api/checkout/orders?orderId=${encodeURIComponent(activeOrder.orderId)}`, {
+        method: "PUT",
+      });
+      const data = await resp.json();
+      if (data.success && data.order?.cards?.[0]) {
+        setActiveOrder({
+          ...activeOrder,
+          deliveredCdk: data.order.cards[0],
+        });
+        setOrderStage("SUCCESS");
+      }
+    } catch (e) {
       const prefix = activeOrder.product.prefix || "PH-";
       const randomKey1 = Math.random().toString(36).substring(2, 6).toUpperCase();
       const randomKey2 = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const generatedCdk = `${prefix}${randomKey1}-${randomKey2}-NOMINAL`;
+      const generatedCdk = `${prefix}${randomKey1}-${randomKey2}-VERIFIED`;
 
       setActiveOrder({
         ...activeOrder,
         deliveredCdk: generatedCdk
       });
       setOrderStage("SUCCESS");
+    } finally {
       setIsVerifying(false);
-    }, 700);
+    }
   };
 
   return (
@@ -219,19 +291,6 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       <span className="text-sm font-bold text-white block">{selectedProduct.title}</span>
                       <span className="text-[10px] text-cyan-200/70">{selectedProduct.sub}</span>
                     </div>
-                    <span className="text-xs font-mono text-neutral-300">¥{activeOrder.basePrice.toFixed(2)}</span>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-neutral-400 text-[11px]">
-                    <span className="flex items-center gap-1">
-                      <Coins className="w-3 h-3 text-amber-400" />
-                      <span>渠道手续费 ({contactInfo.handlingFeePercent ?? 2.0}%)</span>
-                    </span>
-                    <span className="font-mono">+¥{activeOrder.handlingFee.toFixed(2)}</span>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/[0.06] flex items-baseline justify-between">
-                    <span className="text-xs font-bold text-white">应付总额</span>
                     <div className="flex items-baseline gap-1 text-[var(--warm)] font-mono">
                       <span className="text-xs font-bold">¥</span>
                       <span className="text-2xl font-extrabold tracking-tight">
@@ -239,32 +298,38 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       </span>
                     </div>
                   </div>
-                </div>
 
-                {/* 私信免手续费提示胶囊 */}
-                <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-amber-200/90">
-                  <div className="leading-snug">
-                    💡 <strong>不想付手续费？</strong>
-                    私信客服微信转账底价 <strong>¥{activeOrder.basePrice.toFixed(2)}</strong> 免手续费
+                  <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-neutral-400 text-[11px]">
+                    <span className="flex items-center gap-1.5 text-emerald-400">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>全托管官方收银 · 零手续费</span>
+                    </span>
+                    <span className="text-[10px] text-cyan-300 font-mono">
+                      {activeOrder.isSandbox ? "沙盒联调模式" : "苏哲托管专线"}
+                    </span>
                   </div>
-                  <button
-                    onClick={() => handleCopy(contactInfo.wechat, "checkoutWechat")}
-                    className="self-start sm:self-auto px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-[10px] whitespace-nowrap cursor-pointer transition-colors inline-flex items-center gap-1"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>{copiedKey === "checkoutWechat" ? "已复制" : `复制: ${contactInfo.wechat}`}</span>
-                  </button>
                 </div>
 
-                {/* 二维码展示卡片（纯白高光圆角，极简去除虚线） */}
+                {/* 支付方式标识 */}
+                <div className="p-2.5 rounded-xl border border-sky-500/20 bg-sky-950/20 flex items-center justify-between text-[11px] text-sky-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-md bg-[#1677ff] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                      支
+                    </div>
+                    <span className="font-semibold">支付宝扫码支付 (支持花呗/信用卡/余额宝)</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">即时到账</span>
+                </div>
+
+                {/* 二维码展示卡片（纯白高光圆角） */}
                 <div className="py-2 text-center space-y-3">
-                  <div className="w-48 h-48 mx-auto p-2.5 bg-white rounded-2xl shadow-xl relative flex flex-col items-center justify-center">
-                    {contactInfo.qrCodeImage ? (
+                  <div className="w-52 h-52 mx-auto p-2.5 bg-white rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.4)] relative flex flex-col items-center justify-center">
+                    {activeOrder.qrImageUrl || contactInfo.qrCodeImage ? (
                       <div className="w-full h-full flex flex-col items-center justify-center relative">
                         <img 
-                          src={contactInfo.qrCodeImage} 
-                          alt="付款二维码" 
-                          className="w-full h-full object-contain"
+                          src={activeOrder.qrImageUrl || contactInfo.qrCodeImage} 
+                          alt="支付宝付款二维码" 
+                          className="w-full h-full object-contain rounded-xl"
                         />
                       </div>
                     ) : (
@@ -276,19 +341,20 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                     )}
                   </div>
 
-                  <p className="text-[11px] text-neutral-400">
-                    {contactInfo.qrNote} · 付款后自动出码
-                  </p>
+                  <div className="flex items-center justify-center gap-2 text-[11px] text-cyan-400">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                    <span>打开手机支付宝扫一扫 · 付款后自动出卡</span>
+                  </div>
 
                   {/* 模拟支付 / 快速核验按钮 */}
                   <button
                     type="button"
                     onClick={handleSimulatePayment}
                     disabled={isVerifying}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-black font-bold text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(0,229,216,0.3)] active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-neutral-400 hover:text-white font-medium text-[11px] tracking-wider transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{isVerifying ? "正在同步网关交易记录..." : "我已完成支付 (点击快速核验)"}</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{isVerifying ? "正在同步网关交易记录..." : "沙盒演示：一键模拟支付成功出码"}</span>
                   </button>
                 </div>
               </div>

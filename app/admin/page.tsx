@@ -42,6 +42,11 @@ export default function AdminPage() {
     handlingFeePercent: 2.0
   });
 
+  const [suzheApiKey, setSuzheApiKey] = useState("");
+  const [testingPing, setTestingPing] = useState(false);
+  const [pingResult, setPingResult] = useState<{ success: boolean; message?: string; client_name?: string; error?: string } | null>(null);
+  const [ledger, setLedger] = useState<{ total_commission?: string; settled_orders_count?: number; pending_settlement?: string } | null>(null);
+
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
   const [isNewProduct, setIsNewProduct] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -49,6 +54,41 @@ export default function AdminPage() {
   const showToast = (type: "success" | "error", text: string) => {
     setToastMsg({ type, text });
     setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const fetchLedgerData = async () => {
+    try {
+      const resp = await fetch("/api/checkout/ledger");
+      if (resp.ok) {
+        const d = await resp.json();
+        setLedger(d);
+      }
+    } catch (e) {}
+  };
+
+  const handleTestPing = async () => {
+    setTestingPing(true);
+    setPingResult(null);
+    try {
+      const resp = await fetch("/api/checkout/ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: suzheApiKey.trim() }),
+      });
+      const data = await resp.json();
+      setPingResult(data);
+      if (data.success) {
+        showToast("success", `连接成功！商户：${data.client_name || "已认证"}`);
+        fetchLedgerData();
+      } else {
+        showToast("error", data.error || "连接测试失败");
+      }
+    } catch (err: any) {
+      setPingResult({ success: false, error: err.message });
+      showToast("error", "网络请求失败");
+    } finally {
+      setTestingPing(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -72,6 +112,10 @@ export default function AdminPage() {
       if (res.data.contact) {
         setContact(res.data.contact);
       }
+      if (res.data.suzheApiKey) {
+        setSuzheApiKey(res.data.suzheApiKey);
+      }
+      fetchLedgerData();
       showToast("success", "控制台身份验证通过");
     } catch (err) {
       showToast("error", "网络连接异常");
@@ -80,12 +124,14 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveAll = async (newProducts?: StoreProduct[], newContact?: any) => {
+  const handleSaveAll = async (newProducts?: StoreProduct[], newContact?: any, newSuzheKey?: string) => {
     setSaving(true);
     try {
       const payload = {
         products: newProducts || products,
         contact: newContact || contact,
+        suzheApiKey: (newSuzheKey !== undefined ? newSuzheKey : suzheApiKey).trim(),
+        checkoutMode: "suzhe_managed",
       };
 
       const resp = await fetch("/api/admin/store", {
@@ -301,6 +347,92 @@ export default function AdminPage() {
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-[var(--holo)]" />}
                 <span>保存全部修改 (SAVE)</span>
               </button>
+            </div>
+          </div>
+
+          {/* 苏哲官方 API 全托管代收与自动化配置 */}
+          <div className="glass-card corner-bracket p-6 rounded-lg shadow-xl space-y-5 border border-cyan-400/30 bg-gradient-to-r from-cyan-950/20 via-[#070d16] to-[#04070c]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <span>苏哲官方 API 全托管代收与自动出码</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono">
+                      全托管模式已接入
+                    </span>
+                  </h3>
+                  <span className="text-xs text-neutral-400">
+                    无需自建支付接口与人工囤卡，全托管支付宝收款 + 成本扣除 + 差价佣金自动沉淀 + 秒级发码
+                  </span>
+                </div>
+              </div>
+
+              {/* 佣金看板摘要 */}
+              {ledger && (
+                <div className="flex items-center gap-3 text-xs font-mono">
+                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-right">
+                    <span className="text-[10px] text-neutral-400 block">累计已结佣金</span>
+                    <span className="text-sm font-bold text-emerald-400">¥{ledger.total_commission || "0.00"}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-right">
+                    <span className="text-[10px] text-neutral-400 block">待结算利润</span>
+                    <span className="text-sm font-bold text-amber-400">¥{ledger.pending_settlement || "0.00"}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="text-neutral-300 font-bold block">
+                  苏哲 API Key (格式通常为 <code className="text-cyan-300 font-mono">aisub_...</code>)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={suzheApiKey}
+                    onChange={(e) => setSuzheApiKey(e.target.value)}
+                    placeholder="请输入你在 suzhe.ai 获取的 API Key..."
+                    className="flex-1 bg-black/50 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-cyan-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestPing}
+                    disabled={testingPing || !suzheApiKey.trim()}
+                    className="px-4 py-2 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-400/40 text-cyan-300 font-bold text-xs inline-flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                  >
+                    {testingPing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flame className="w-3.5 h-3.5" />}
+                    <span>测试连通性</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-neutral-400">
+                  如留空或填 sandbox_mode，系统将自动进入高逼真沙盒模拟演示模式，方便随时体验全流程。
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1.5">
+                <span className="text-[11px] font-bold text-white block">连通探测状态</span>
+                {pingResult ? (
+                  pingResult.success ? (
+                    <div className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>已连接上游集群 (商户: {pingResult.client_name || "正式客户"})</span>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-red-400 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{pingResult.error || "连接异常"}</span>
+                    </div>
+                  )
+                ) : (
+                  <div className="text-[11px] text-neutral-400">
+                    点击左侧「测试连通性」可即时检测密钥与上游可用性
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

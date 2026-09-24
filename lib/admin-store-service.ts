@@ -21,6 +21,8 @@ export interface StoreContact {
 
 export interface StoreAdminData {
   adminSecret: string;
+  suzheApiKey?: string;
+  checkoutMode?: "suzhe_managed" | "custom_qr";
   contact: StoreContact;
   products: StoreProduct[];
 }

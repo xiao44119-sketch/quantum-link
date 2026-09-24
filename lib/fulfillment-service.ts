@@ -1,5 +1,6 @@
 import { detectProductByCode } from "./products-config";
 import { RedeemRequest, TaskRecord, DuplicateConfirmError } from "./types";
+import { getStoreData } from "./admin-store-service";
 
 const memoryTasks = new Map<string, TaskRecord>();
 
@@ -18,8 +19,9 @@ MOCK_HISTORIES.set("blocked@test.com", {
 export async function submitFulfillmentTask(
   body: RedeemRequest
 ): Promise<{ success: true; task_id: string } | { success: false; status: number; errorData: DuplicateConfirmError | { error: string; detail?: string } }> {
-  const apiKey = process.env.SUZHE_API_KEY;
-  const baseUrl = process.env.SUZHE_BASE_URL || "https://aisubscription.vip";
+  const storeData = getStoreData();
+  const apiKey = process.env.SUZHE_API_KEY || storeData.suzheApiKey;
+  const baseUrl = process.env.SUZHE_BASE_URL || "https://www.academicgate.org";
 
   const targetEmail = body.session_data?.user?.email || "anonymous@openai.user";
   const matchedProduct = detectProductByCode(body.card_code);
@@ -146,8 +148,9 @@ export async function submitFulfillmentTask(
 }
 
 export async function queryTaskStatus(taskId: string): Promise<TaskRecord | null> {
-  const apiKey = process.env.SUZHE_API_KEY;
-  const baseUrl = process.env.SUZHE_BASE_URL || "https://aisubscription.vip";
+  const storeData = getStoreData();
+  const apiKey = process.env.SUZHE_API_KEY || storeData.suzheApiKey;
+  const baseUrl = process.env.SUZHE_BASE_URL || "https://www.academicgate.org";
 
   if (apiKey && apiKey !== "sandbox_mode") {
     try {

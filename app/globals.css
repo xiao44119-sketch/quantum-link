@@ -24,44 +24,31 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* 柔和的环境深空光晕 */
+/* 现代高级深空微晕 */
 .ambient-glow {
   position: fixed;
-  top: -120px;
+  top: -160px;
   left: 50%;
   transform: translateX(-50%);
-  width: 900px;
-  height: 480px;
-  background: radial-gradient(circle, rgba(0, 229, 216, 0.12) 0%, rgba(255, 184, 133, 0.04) 45%, transparent 70%);
+  width: 1100px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(168, 85, 247, 0.04) 40%, transparent 70%);
   pointer-events: none;
   z-index: 1;
-  filter: blur(60px);
+  filter: blur(80px);
 }
 
-/* 屏幕全息微扫描线 */
-.screen-lines {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(200, 220, 255, 0.015) 0 1px,
-    transparent 1px 3px
-  ),
-  radial-gradient(130% 110% at 50% 25%, transparent 65%, rgba(2, 4, 7, 0.75) 100%);
-}
-
+/* 极简高级微网格（替代刺眼 CRT 扫描线） */
 .hud-grid {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.22;
-  background-size: 48px 48px;
+  opacity: 0.15;
+  background-size: 64px 64px;
   background-image: 
-    linear-gradient(to right, rgba(143, 233, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(143, 233, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 /* 柔化的赛博四角 HUD 准星 */
