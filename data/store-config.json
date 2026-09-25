@@ -1,5 +1,7 @@
 {
   "adminSecret": "admin888",
+  "suzheApiKey": "aisub_sEvDIQNxhV7LjxtwW7QAY52mZbumTvO8",
+  "checkoutMode": "suzhe_managed",
   "contact": {
     "wechat": "18300425760",
     "wechatGroupTitle": "Finn 极客 AI 交流群",
