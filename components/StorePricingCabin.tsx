@@ -78,6 +78,13 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       .catch((e) => console.error("Fetch products failed:", e));
   }, []);
 
+  const filteredProducts = products.filter((p) => {
+    if (categoryFilter === "POPULAR") return p.isPopular;
+    if (categoryFilter === "AI") return p.category === "ai" || (!p.category && !p.id.includes("vpn") && !p.id.includes("sms"));
+    if (categoryFilter === "TOOLS") return p.category === "tools" || p.id.includes("vpn") || p.id.includes("sms");
+    return true;
+  });
+
   const handleOpenCheckout = async (product: StoreProduct) => {
     setIsCreatingOrder(true);
     const dateStr = new Date().toISOString().replace(/[-:T]/g, "").slice(2, 10);
@@ -316,34 +323,59 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                     <div className="w-5 h-5 rounded-md bg-[#1677ff] text-white flex items-center justify-center font-bold text-xs shadow-sm">
                       支
                     </div>
-                    <span className="font-semibold">支付宝扫码支付 (支持花呗/信用卡/余额宝)</span>
+                    <span className="font-semibold">官方代充结算通道 (支持支付宝 / 微信客服直充)</span>
                   </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">即时到账</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">即时开通</span>
                 </div>
 
-                {/* 二维码展示卡片（纯白高光圆角） */}
+                {/* 支付/出卡交互卡片 */}
                 <div className="py-2 text-center space-y-3">
-                  <div className="w-52 h-52 mx-auto p-2.5 bg-white rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.4)] relative flex flex-col items-center justify-center">
-                    {activeOrder.qrImageUrl || contactInfo.qrCodeImage ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center relative">
-                        <img 
-                          src={activeOrder.qrImageUrl || contactInfo.qrCodeImage} 
-                          alt="支付宝付款二维码" 
-                          className="w-full h-full object-contain rounded-xl"
-                        />
+                  {activeOrder.qrImageUrl || contactInfo.qrCodeImage ? (
+                    <div className="w-52 h-52 mx-auto p-2.5 bg-white rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.4)] relative flex flex-col items-center justify-center">
+                      <img 
+                        src={activeOrder.qrImageUrl || contactInfo.qrCodeImage} 
+                        alt="付款二维码" 
+                        className="w-full h-full object-contain rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-gradient-to-b from-[#111c2d] to-[#0c1422] border border-cyan-500/30 text-left space-y-3 shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-md bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                            微
+                          </span>
+                          <span className="text-xs font-bold text-white">站长微信转账直充 (0手续费)</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-mono">1对1极速秒发</span>
                       </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-neutral-800">
-                        <QrCode className="w-20 h-20 text-neutral-900 mb-1" />
-                        <span className="text-xs font-bold text-neutral-900">{contactInfo.qrNote}</span>
-                        <span className="text-[10px] text-neutral-500 font-mono mt-0.5">{activeOrder.orderId}</span>
+                      
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/60 border border-white/10">
+                        <div>
+                          <span className="text-[10px] text-neutral-400 block font-mono">WECHAT ID:</span>
+                          <span className="text-sm font-extrabold text-cyan-300 font-mono tracking-wider">
+                            {contactInfo.wechat || "18300425760"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(contactInfo.wechat || "18300425760", "wechatId")}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/40 inline-flex items-center gap-1 transition-all"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{copiedKey === "wechatId" ? "已复制" : "复制微信号"}</span>
+                        </button>
                       </div>
-                    )}
-                  </div>
+
+                      <p className="text-[11px] text-neutral-400 leading-relaxed">
+                        转账时请备注订单号 <strong className="text-cyan-300 font-mono">{activeOrder.orderId}</strong>，站长收到后将在 1 分钟内核销并秒发 CDK；或者您也可以使用下方演示出码立即体验激活流程！
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-center gap-2 text-[11px] text-cyan-400">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                    <span>打开手机支付宝扫一扫 · 付款后自动出卡</span>
+                    <span>正规海外实体卡扣款 · 支持全程 30 天质保</span>
                   </div>
 
                   {/* 模拟支付 / 快速核验按钮 */}
@@ -351,10 +383,10 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                     type="button"
                     onClick={handleSimulatePayment}
                     disabled={isVerifying}
-                    className="w-full py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-neutral-400 hover:text-white font-medium text-[11px] tracking-wider transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-200 hover:text-white font-medium text-[11px] tracking-wider transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{isVerifying ? "正在同步网关交易记录..." : "沙盒演示：一键模拟支付成功出码"}</span>
+                    <span>{isVerifying ? "正在同步网关交易记录..." : "极速出码测试：一键模拟支付成功获取 CDK"}</span>
                   </button>
                 </div>
               </div>
@@ -449,104 +481,146 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       <div className="text-center max-w-2xl mx-auto space-y-2.5 px-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-0.5 border border-amber-500/30 bg-amber-950/20 text-[var(--warm)] text-[11px] rounded-full font-medium">
           <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>官方正规独享充值通道</span>
+          <span>官方正规独享充值通道 · 30天全周期质保</span>
         </div>
         <h2 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-          主流 AI 生产力订阅中心
+          主流 AI 生产力与极客网络中心
         </h2>
         <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed max-w-xl mx-auto">
           {contactInfo.noticeText}
         </p>
       </div>
 
-      {/* 三列商品卡片：Linear / Apple 质感大圆角与柔和微光 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-        {products.map((p) => (
-          <div
-            key={p.id}
-            className={`rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 relative bg-gradient-to-b from-[#0c121d] via-[#080d16] to-[#05080e] border ${
-              p.isPopular
-                ? "border-cyan-500/40 shadow-[0_0_30px_rgba(0,229,216,0.12)]"
-                : "border-white/[0.08] hover:border-white/20"
+      {/* 分类筛选胶囊导航 */}
+      <div className="flex items-center justify-center gap-2 flex-wrap px-2">
+        {[
+          { id: "ALL", label: "全部套餐", count: products.length },
+          { id: "POPULAR", label: "🔥 热门主推", count: products.filter(p => p.isPopular).length },
+          { id: "AI", label: "🤖 AI 旗舰模型", count: products.filter(p => p.category === "ai" || (!p.category && !p.id.includes("vpn") && !p.id.includes("sms"))).length },
+          { id: "TOOLS", label: "⚡ 极客网络与工具", count: products.filter(p => p.category === "tools" || p.id.includes("vpn") || p.id.includes("sms")).length },
+        ].map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => setCategoryFilter(cat.id)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              categoryFilter === cat.id
+                ? "bg-cyan-500/20 text-cyan-200 border border-cyan-400/50 shadow-[0_0_12px_rgba(0,229,216,0.2)] font-bold"
+                : "bg-white/[0.03] text-neutral-400 hover:text-white border border-white/5 hover:border-white/10"
             }`}
           >
-            <div>
-              {/* 卡片头部 */}
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                    {p.title}
-                  </h3>
-                  <span className="text-xs text-neutral-400 mt-0.5 block">{p.sub}</span>
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ${
-                    p.isPopular 
-                      ? "bg-cyan-500/20 border border-cyan-400/40 text-cyan-300"
-                      : "bg-amber-950/30 border border-amber-500/30 text-amber-300"
-                  }`}>
-                    {p.badge}
-                  </span>
-                  <span className="text-[9px] text-emerald-400 font-medium whitespace-nowrap">
-                    ● {p.stockStatus}
-                  </span>
-                </div>
-              </div>
-
-              {/* 价格区 */}
-              <div className="my-4 pb-4 border-b border-white/[0.06]">
-                <div className="flex items-baseline gap-1 font-mono">
-                  <span className="text-sm font-semibold text-neutral-400">¥</span>
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                    {p.price}
-                  </span>
-                  {p.originalPrice && (
-                    <span className="line-through text-xs text-neutral-500 ml-1">
-                      {p.originalPrice}
-                    </span>
-                  )}
-                  <span className="text-xs text-neutral-400 ml-auto font-normal">/ {p.period}</span>
-                </div>
-                <p className="text-[11px] text-neutral-400 mt-2 leading-relaxed">
-                  {p.description}
-                </p>
-              </div>
-
-              {/* 特性清单 */}
-              <ul className="space-y-2 text-xs text-neutral-300 mb-6">
-                {p.features.map((feat, idx) => (
-                  <li key={idx} className="flex items-start gap-2 p-2 rounded-xl bg-white/[0.02]">
-                    <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <span className="leading-snug text-[11px] text-neutral-300">{feat}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* 购买按钮 */}
-            <div className="space-y-2.5 pt-3 border-t border-white/[0.06]">
-              <button
-                type="button"
-                onClick={() => handleOpenCheckout(p)}
-                className={`w-full py-3 sm:py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-[0.98] ${
-                  p.isPopular
-                    ? "bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black shadow-[0_0_20px_rgba(0,229,216,0.25)]"
-                    : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
-                }`}
-              >
-                <span>立即选购 · 获取卡密</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center justify-between text-[10px] text-neutral-500 px-1 font-mono">
-                <span>前缀: <strong className="text-cyan-400">{p.prefix}</strong></span>
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <Clock className="w-3 h-3" /> 自动出码
-                </span>
-              </div>
-            </div>
-          </div>
+            <span>{cat.label}</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-neutral-300 font-mono">
+              {cat.count}
+            </span>
+          </button>
         ))}
+      </div>
+
+      {/* 商品卡片网格：Linear / Apple 质感大圆角与柔和微光 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        {filteredProducts.map((p) => {
+          const originalNum = parseFloat(p.originalPrice?.replace(/[^\d.]/g, "") || "0");
+          const priceNum = parseFloat(p.price);
+          const savings = originalNum > priceNum ? Math.round(originalNum - priceNum) : 0;
+          const displayFeatures = p.features && p.features.length > 0 ? p.features : [
+            "正规海外实体卡代充，官方独享安全稳定",
+            "无需提供账号密码，凭借安全会话极速激活",
+            "提供 30 天售后质保，官方策略异动秒级补换"
+          ];
+
+          return (
+            <div
+              key={p.id}
+              className={`rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 relative bg-gradient-to-b from-[#0c121d] via-[#080d16] to-[#05080e] border ${
+                p.isPopular
+                  ? "border-cyan-500/40 shadow-[0_0_30px_rgba(0,229,216,0.12)]"
+                  : "border-white/[0.08] hover:border-white/20"
+              }`}
+            >
+              <div>
+                {/* 卡片头部 */}
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                      {p.title}
+                    </h3>
+                    <span className="text-xs text-neutral-400 mt-0.5 block">{p.sub}</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ${
+                      p.isPopular 
+                        ? "bg-cyan-500/20 border border-cyan-400/40 text-cyan-300"
+                        : "bg-amber-950/30 border border-amber-500/30 text-amber-300"
+                    }`}>
+                      {p.badge}
+                    </span>
+                    <span className="text-[9px] text-emerald-400 font-medium whitespace-nowrap">
+                      ● {p.stockStatus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 价格区 */}
+                <div className="my-4 pb-4 border-b border-white/[0.06]">
+                  <div className="flex items-baseline gap-1 font-mono">
+                    <span className="text-sm font-semibold text-neutral-400">¥</span>
+                    <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                      {p.price}
+                    </span>
+                    {p.originalPrice && (
+                      <span className="line-through text-xs text-neutral-500 ml-1">
+                        ¥{p.originalPrice.replace(/[^\d.]/g, "")}
+                      </span>
+                    )}
+                    {savings > 0 && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold font-mono ml-2">
+                        省 ¥{savings}
+                      </span>
+                    )}
+                    <span className="text-xs text-neutral-400 ml-auto font-normal">/ {p.period}</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400 mt-2 leading-relaxed">
+                    {p.description}
+                  </p>
+                </div>
+
+                {/* 特性清单 */}
+                <ul className="space-y-2 text-xs text-neutral-300 mb-6">
+                  {displayFeatures.map((feat, idx) => (
+                    <li key={idx} className="flex items-start gap-2 p-2 rounded-xl bg-white/[0.02]">
+                      <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span className="leading-snug text-[11px] text-neutral-300">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* 购买按钮 */}
+              <div className="space-y-2.5 pt-3 border-t border-white/[0.06]">
+                <button
+                  type="button"
+                  onClick={() => handleOpenCheckout(p)}
+                  className={`w-full py-3 sm:py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg active:scale-[0.98] ${
+                    p.isPopular
+                      ? "bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black shadow-[0_0_20px_rgba(0,229,216,0.25)]"
+                      : "bg-white/10 hover:bg-white/15 text-white border border-white/10"
+                  }`}
+                >
+                  <span>立即选购 · 获取卡密</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center justify-between text-[10px] text-neutral-500 px-1 font-mono">
+                  <span>前缀: <strong className="text-cyan-400">{p.prefix}</strong></span>
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <Clock className="w-3 h-3" /> 自动出码
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* 底部三大保障 */}
