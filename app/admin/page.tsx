@@ -20,7 +20,12 @@ import {
   Settings,
   X,
   Upload,
-  ImageIcon
+  ImageIcon,
+  Headphones,
+  MessageSquare,
+  Copy,
+  Check,
+  RefreshCw
 } from "lucide-react";
 import { StoreProduct } from "@/config/store-products";
 
@@ -51,9 +56,51 @@ export default function AdminPage() {
   const [isNewProduct, setIsNewProduct] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketFilter, setTicketFilter] = useState<"ALL" | "pending" | "resolved">("ALL");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const showToast = (type: "success" | "error", text: string) => {
     setToastMsg({ type, text });
     setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  const fetchTickets = async (secret?: string) => {
+    try {
+      const resp = await fetch("/api/tickets", {
+        headers: { "x-admin-secret": (secret || authKey).trim() },
+      });
+      const d = await resp.json();
+      if (d.success && d.tickets) {
+        setTickets(d.tickets);
+      }
+    } catch (e) {}
+  };
+
+  const handleUpdateTicket = async (ticketId: string, status: "pending" | "processing" | "resolved", reply?: string) => {
+    try {
+      const resp = await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": authKey.trim(),
+        },
+        body: JSON.stringify({ ticket_id: ticketId, status, reply }),
+      });
+      const d = await resp.json();
+      if (d.success) {
+        showToast("success", `工单状态已更新为：${status === "resolved" ? "已解决" : status === "processing" ? "处理中" : "待处理"}`);
+        fetchTickets();
+      }
+    } catch {
+      showToast("error", "更新工单失败");
+    }
   };
 
   const fetchLedgerData = async () => {
@@ -116,6 +163,7 @@ export default function AdminPage() {
         setSuzheApiKey(res.data.suzheApiKey);
       }
       fetchLedgerData();
+      fetchTickets(authKey.trim());
       showToast("success", "控制台身份验证通过");
     } catch (err) {
       showToast("error", "网络连接异常");
@@ -434,6 +482,148 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* 极速售后工单中心 (由 GPTibo 工单引擎启发) */}
+          <div className="glass-card corner-bracket p-6 rounded-lg shadow-xl space-y-4 border border-purple-500/30 bg-gradient-to-r from-purple-950/20 via-[#0a0d16] to-[#04070c]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300">
+                  <Headphones className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <span>极速售后工单处理中心 (TICKETS WORKSPACE)</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 font-mono">
+                      待处理: {tickets.filter((t) => t.status === "pending").length}
+                    </span>
+                  </h3>
+                  <span className="text-xs text-neutral-400">
+                    客户提交的 409 充值报错、卡密核对或 30 天质保申诉，可在此一键复制微信号并流转状态
+                  </span>
+                </div>
+              </div>
+
+              {/* 筛选与刷新 */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center p-0.5 rounded-full border border-white/10 bg-black/40 text-[11px]">
+                  {(["ALL", "pending", "resolved"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setTicketFilter(tab)}
+                      className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                        ticketFilter === tab
+                          ? "bg-purple-950 text-purple-200 border border-purple-500/50 font-bold"
+                          : "text-neutral-400 hover:text-white"
+                      }`}
+                    >
+                      {tab === "ALL" ? `全部 (${tickets.length})` : tab === "pending" ? "待处理" : "已解决"}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fetchTickets()}
+                  className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition-colors"
+                  title="刷新工单"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* 工单列表 */}
+            {tickets.length === 0 ? (
+              <div className="text-center py-6 text-neutral-500 text-xs font-mono">
+                暂无售后工单记录，系统运行平稳
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tickets
+                  .filter((t) => {
+                    if (ticketFilter === "pending") return t.status === "pending" || t.status === "processing";
+                    if (ticketFilter === "resolved") return t.status === "resolved";
+                    return true;
+                  })
+                  .map((t) => (
+                    <div
+                      key={t.id}
+                      className="p-4 rounded-xl border border-white/[0.08] bg-black/50 space-y-2.5 transition-all hover:border-purple-500/30"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-cyan-300 font-mono">{t.id}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300">
+                            {t.category_name}
+                          </span>
+                          <span className="text-neutral-500 text-[10px]">{t.created_at}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              t.status === "resolved"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : t.status === "processing"
+                                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            }`}
+                          >
+                            {t.status === "resolved" ? "● 已解决" : t.status === "processing" ? "● 处理中" : "● 待处理"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-white/[0.02] p-2 rounded-lg border border-white/5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-neutral-500">关联单号:</span>
+                          <span className="text-white font-mono break-all">{t.order_id}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-neutral-500">客户联系方式:</span>
+                          <span className="text-cyan-200 font-bold font-mono">{t.contact}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(t.contact, `ticket_${t.id}`)}
+                            className="text-[10px] text-purple-300 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            {copiedKey === `ticket_${t.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedKey === `ticket_${t.id}` ? "已复制" : "复制"}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-neutral-300 leading-relaxed bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        <span className="text-neutral-500 block text-[10px] mb-0.5">问题描述:</span>
+                        <p className="whitespace-pre-wrap">{t.description}</p>
+                      </div>
+
+                      {/* 处理操作按钮 */}
+                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/[0.04]">
+                        {t.status !== "processing" && t.status !== "resolved" && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateTicket(t.id, "processing")}
+                            className="px-3 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] transition-all cursor-pointer"
+                          >
+                            标记为处理中
+                          </button>
+                        )}
+                        {t.status !== "resolved" && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateTicket(t.id, "resolved")}
+                            className="px-3 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition-all cursor-pointer"
+                          >
+                            标记为已解决
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* 收银台与客服配置 */}

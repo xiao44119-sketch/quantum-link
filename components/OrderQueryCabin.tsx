@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Loader2, CheckCircle2, AlertCircle, Clock, ShieldCheck, FileText, Check } from "lucide-react";
+import { Search, Loader2, CheckCircle2, AlertCircle, Clock, ShieldCheck, FileText, Check, Headphones } from "lucide-react";
+import { TicketModal } from "./TicketModal";
 
 export const OrderQueryCabin: React.FC = () => {
   const [queryCode, setQueryCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [isTicketOpen, setIsTicketOpen] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +44,12 @@ export const OrderQueryCabin: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-10 animate-in fade-in duration-300">
+      <TicketModal
+        isOpen={isTicketOpen}
+        onClose={() => setIsTicketOpen(false)}
+        presetOrderId={queryCode}
+      />
+
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1 border border-purple-500/30 bg-purple-950/20 text-purple-300 font-mono text-[11px] rounded-full">
           <Search className="w-3.5 h-3.5 text-purple-400" />
@@ -82,9 +91,23 @@ export const OrderQueryCabin: React.FC = () => {
         </form>
 
         {errorMsg && (
-          <div className="mt-5 p-3.5 rounded-md border border-rose-500/40 bg-rose-950/30 text-rose-300 text-xs font-mono flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
+          <div className="mt-5 space-y-3">
+            <div className="p-3.5 rounded-md border border-rose-500/40 bg-rose-950/30 text-rose-300 text-xs font-mono flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+              <span>{errorMsg}</span>
+            </div>
+
+            <div className="p-3.5 rounded-md bg-purple-950/20 border border-purple-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
+              <span className="text-purple-300">仍有对账疑问或需要客服核实？可提交售后工单。</span>
+              <button
+                type="button"
+                onClick={() => setIsTicketOpen(true)}
+                className="px-3.5 py-1.5 rounded-md bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 font-bold inline-flex items-center gap-1.5 transition-all text-xs flex-shrink-0"
+              >
+                <Headphones className="w-3.5 h-3.5" />
+                <span>一键提交售后工单</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -123,6 +146,22 @@ export const OrderQueryCabin: React.FC = () => {
                 <span className="text-neutral-500 block text-[10px] mb-0.5">质保有效期至</span>
                 <span className="text-neutral-300">{result.expire_at}</span>
               </div>
+            </div>
+
+            {/* 质保期一键售后通道 */}
+            <div className="p-3 rounded-md bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+              <span className="text-neutral-400 text-[11px] flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>享有 30 天完整质保兜底，遇官方异动全额秒补</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsTicketOpen(true)}
+                className="px-3 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/30 font-bold inline-flex items-center gap-1 text-[11px] transition-all"
+              >
+                <Headphones className="w-3 h-3" />
+                <span>申请质保 / 售后</span>
+              </button>
             </div>
           </div>
         )}

@@ -21,6 +21,7 @@ import { detectProductByCode } from "@/lib/products-config";
 import { ProductInfo, TaskRecord, DuplicateConfirmError } from "@/lib/types";
 import { CollisionWarningModal } from "./CollisionWarningModal";
 import { SessionHelperModal } from "./SessionHelperModal";
+import { SessionPrecheckCard } from "./SessionPrecheckCard";
 
 interface Props {
   presetPrefix?: string;
@@ -319,6 +320,9 @@ export const FulfillmentConsole: React.FC<Props> = ({
               required
             />
           </div>
+
+          {/* Session 智能预检与诊断卡片 */}
+          <SessionPrecheckCard sessionInput={sessionInput} />
 
           {errorMessage && (
             <div className="p-3.5 rounded-md border border-rose-500/40 bg-rose-950/30 text-rose-300 text-xs font-mono flex items-center gap-2.5">
