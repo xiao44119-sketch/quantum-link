@@ -14,32 +14,62 @@ export interface Ticket {
   replied_at?: string;
 }
 
-const TICKETS_FILE = path.join(process.cwd(), "data", "tickets.json");
+const DATA_FILE = path.join(process.cwd(), "data", "tickets.json");
+const TMP_FILE = path.join("/tmp", "tickets.json");
+
+// In-memory fallback for serverless runtime
+const globalForTickets = global as unknown as { _ticketsCache?: Ticket[] };
+if (!globalForTickets._ticketsCache) {
+  globalForTickets._ticketsCache = [];
+}
 
 export function getTickets(): Ticket[] {
   try {
-    if (fs.existsSync(TICKETS_FILE)) {
-      const content = fs.readFileSync(TICKETS_FILE, "utf8");
-      return JSON.parse(content);
+    if (fs.existsSync(TMP_FILE)) {
+      const content = fs.readFileSync(TMP_FILE, "utf8");
+      const list = JSON.parse(content);
+      if (Array.isArray(list)) {
+        globalForTickets._ticketsCache = list;
+        return list;
+      }
+    }
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, "utf8");
+      const list = JSON.parse(content);
+      if (Array.isArray(list)) {
+        globalForTickets._ticketsCache = list;
+        return list;
+      }
     }
   } catch (err) {
-    console.error("Failed to read tickets:", err);
+    console.error("Failed to read tickets from file, using in-memory cache:", err);
   }
-  return [];
+  return globalForTickets._ticketsCache || [];
 }
 
 export function saveTickets(tickets: Ticket[]): boolean {
+  globalForTickets._ticketsCache = tickets;
+  let saved = false;
+
   try {
-    const dir = path.dirname(TICKETS_FILE);
+    fs.writeFileSync(TMP_FILE, JSON.stringify(tickets, null, 2), "utf8");
+    saved = true;
+  } catch (e) {
+    // ignore tmp write error
+  }
+
+  try {
+    const dir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(TICKETS_FILE, JSON.stringify(tickets, null, 2), "utf8");
-    return true;
+    fs.writeFileSync(DATA_FILE, JSON.stringify(tickets, null, 2), "utf8");
+    saved = true;
   } catch (err) {
-    console.error("Failed to save tickets:", err);
-    return false;
+    // On Vercel, process.cwd() is read-only, which is expected
   }
+
+  return saved;
 }
 
 export function createTicket(data: {
