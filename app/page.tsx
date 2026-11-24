@@ -1,124 +1,187 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { TelemetryHeader } from "@/components/TelemetryHeader";
-import { LiveActivityFeed } from "@/components/LiveActivityFeed";
+import { TelemetryHeader, NavTab } from "@/components/TelemetryHeader";
+import { AmbientAuroraCanvas } from "@/components/AmbientAuroraCanvas";
+import { EntranceCurtain } from "@/components/EntranceCurtain";
 import { StorePricingCabin } from "@/components/StorePricingCabin";
 import { FulfillmentConsole } from "@/components/FulfillmentConsole";
 import { OrderQueryCabin } from "@/components/OrderQueryCabin";
 import { FinnInfraAndFaq } from "@/components/FinnInfraAndFaq";
 import { Footer } from "@/components/Footer";
-import { ShoppingCart, Terminal, Search } from "lucide-react";
+import { ActivationLine } from "@/lib/types";
+import { ArrowRight } from "lucide-react";
+import { soundFX } from "@/lib/tactile-feedback";
 
-type ActiveTab = "store" | "redeem" | "query";
+const LINE_ACCENT_MAP: Record<ActivationLine, string> = {
+  chatgpt: "#4E9578",
+  sheerid: "#7386E8",
+  codex_sms: "#E27B58",
+  grok: "#C7B293",
+  tg_premium: "#4A96D9",
+  muse_boost: "#D97757",
+  gemini_pro: "#8676E6",
+};
+
+const HERO_COPY: Record<
+  NavTab,
+  {
+    eyebrow: string;
+    lead: string;
+    highlight: string;
+    sub: string;
+    accent: string;
+  }
+> = {
+  store: {
+    eyebrow: "官方正版供应链实时直连 · 零密码安全协议",
+    lead: "顶配 AI 生产力，",
+    highlight: "一步优雅入手。",
+    sub: "严选 ChatGPT Pro 10x / 20x、Gemini 学生身份认证、SuperGrok 与海外接码绑卡，库存实时同步、云端保险柜存证。",
+    accent: "#D97757",
+  },
+  redeem: {
+    eyebrow: "7 合 1 智能履约引擎 · 自动识别卡密档位",
+    lead: "输入专属卡密，",
+    highlight: "全自动秒级开通。",
+    sub: "无需提供聊天账号密码，粘贴卡密自动展开对应向导，前置体检不扣次数，全程透明追踪。",
+    accent: "#4E9578",
+  },
+  query: {
+    eyebrow: "Supabase 加密保险柜 · 永久防丢单存证",
+    lead: "订单与卡密进度，",
+    highlight: "随时一键溯源。",
+    sub: "输入本站 QL 订单号、预留微信号或任意卡密，实时调取交付凭证与上游核验状态。",
+    accent: "#7386E8",
+  },
+};
 
 export default function Home() {
-  const [currentTab, setCurrentTab] = useState<ActiveTab>("store");
+  const [currentTab, setCurrentTab] = useState<NavTab>("store");
   const [presetPrefix, setPresetPrefix] = useState<string>("");
   const [activeTaskCount, setActiveTaskCount] = useState<number>(0);
-  const [engineMode, setEngineMode] = useState<string>("UPSTREAM_PRODUCTION");
+  const [activeLine, setActiveLine] = useState<ActivationLine>("chatgpt");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.mode) setEngineMode(data.mode);
-      })
-      .catch(() => {});
+    const saved = window.localStorage.getItem("ql_theme");
+    const initial = saved === "light" ? "light" : "dark";
+    setTheme(initial);
+    document.documentElement.setAttribute("data-theme", initial);
+    const timer = window.setTimeout(() => setBooted(true), 1150);
+    return () => window.clearTimeout(timer);
   }, []);
 
+  const handleToggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    window.localStorage.setItem("ql_theme", next);
+    document.documentElement.setAttribute("data-theme", next);
+  };
+
   const handleGoToRedeem = (prefix?: string) => {
+    soundFX.play("switch");
     if (prefix) setPresetPrefix(prefix);
     setCurrentTab("redeem");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const hero = HERO_COPY[currentTab];
+  const dynamicAccent =
+    currentTab === "redeem" ? LINE_ACCENT_MAP[activeLine] || hero.accent : hero.accent;
+  const baseDelay = booted ? 0 : 440;
+
   return (
-    <div className="min-h-screen bg-[#06090e] text-[#f0f7f7] relative selection:bg-cyan-500/20 selection:text-cyan-200">
-      <div className="ambient-glow" />
-      <div className="screen-lines" />
-      <div className="hud-grid" />
+    <div className="min-h-screen relative">
+      {/* 进站序幕揭幕仪式（0.54s 非阻塞丝绸雾化揭幕） */}
+      <EntranceCurtain theme={theme} />
 
-      <TelemetryHeader mode={engineMode} activeTaskCount={activeTaskCount} />
-      <LiveActivityFeed />
+      {/* 进站顶部流光序幕线 */}
+      <div
+        aria-hidden="true"
+        className="ql-curtain-bar fixed top-0 left-0 right-0 h-[2px] z-50 pointer-events-none"
+        style={{
+          background: "linear-gradient(90deg, #4E9578 0%, #E6BE8A 50%, #E27B58 100%)",
+        }}
+      />
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/[0.06] pb-5 mb-8">
-          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex items-center p-1 border border-white/10 bg-[#090e16]/90 backdrop-blur-md rounded-xl sm:rounded-full shadow-lg">
-            <button
-              onClick={() => setCurrentTab("store")}
-              className={`px-2 sm:px-5 py-2 rounded-lg sm:rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                currentTab === "store"
-                  ? "bg-cyan-950/90 text-white border border-[var(--holo)]/70 shadow-[0_0_15px_rgba(0,229,216,0.25)] font-bold"
-                  : "text-neutral-400 hover:text-white border border-transparent"
-              }`}
-            >
-              <ShoppingCart className="w-3.5 h-3.5 text-[var(--holo)] flex-shrink-0" />
-              <span className="hidden sm:inline">01. 严选套餐商城</span>
-              <span className="sm:hidden">选购套餐</span>
-            </button>
+      {/* 60fps 交互式星轨极光背景 */}
+      <AmbientAuroraCanvas accentHex={dynamicAccent} theme={theme} />
 
-            <button
-              onClick={() => setCurrentTab("redeem")}
-              className={`px-2 sm:px-5 py-2 rounded-lg sm:rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                currentTab === "redeem"
-                  ? "bg-amber-950/90 text-white border border-[var(--warm)]/70 shadow-[0_0_15px_rgba(255,184,133,0.25)] font-bold"
-                  : "text-neutral-400 hover:text-white border border-transparent"
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5 text-[var(--warm)] flex-shrink-0" />
-              <span className="hidden sm:inline">02. 七合一自助激活</span>
-              <span className="sm:hidden">自助激活</span>
-            </button>
+      {/* 顶栏悬浮玻璃导航 */}
+      <TelemetryHeader
+        currentTab={currentTab}
+        onSelectTab={setCurrentTab}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        activeTaskCount={activeTaskCount}
+      />
 
-            <button
-              onClick={() => setCurrentTab("query")}
-              className={`px-2 sm:px-5 py-2 rounded-lg sm:rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                currentTab === "query"
-                  ? "bg-purple-950/90 text-white border border-purple-400/70 shadow-[0_0_15px_rgba(192,132,252,0.25)] font-bold"
-                  : "text-neutral-400 hover:text-white border border-transparent"
-              }`}
-            >
-              <Search className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
-              <span className="hidden sm:inline">03. 订单与卡密查询</span>
-              <span className="sm:hidden">查单取卡</span>
-            </button>
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 pb-24">
+        {/* 艺术杂志级 Hero 主舞台（带逐段模糊微倾揭幕动效） */}
+        <section key={currentTab} className="text-center max-w-3xl mx-auto mb-7 sm:mb-9">
+          <div
+            style={{ animationDelay: `${baseDelay + 30}ms` }}
+            className="ql-rise inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-[var(--rule-strong)] bg-[var(--bg-elevated)] backdrop-blur-md text-xs font-medium text-[var(--ink-2)] shadow-sm"
+          >
+            <span
+              className="w-2 h-2 rounded-full ql-halo-dot"
+              style={{ backgroundColor: dynamicAccent }}
+            />
+            <span>{hero.eyebrow}</span>
           </div>
 
-          <div className="hidden lg:flex items-center gap-4 text-xs font-mono text-neutral-400">
-            <span className="flex items-center gap-2 px-3.5 py-1.5 border border-white/5 bg-white/[0.02] rounded-full">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 signal-dot" />
-              <span>SUZHE V2 · SUPABASE VAULT ACTIVE</span>
+          <h1 className="font-serif-editorial text-[30px] sm:text-[46px] lg:text-[52px] leading-[1.14] tracking-[-0.025em] text-[var(--ink)] mt-4 sm:mt-5 font-medium">
+            <span style={{ animationDelay: `${baseDelay + 100}ms` }} className="ql-word-reveal">
+              {hero.lead}
             </span>
-          </div>
-        </div>
+            <span
+              style={{
+                animationDelay: `${baseDelay + 210}ms`,
+                color: dynamicAccent,
+              }}
+              className="ql-word-reveal transition-colors duration-700"
+            >
+              {hero.highlight}
+            </span>
+          </h1>
 
+          <p
+            style={{ animationDelay: `${baseDelay + 300}ms` }}
+            className="ql-rise text-sm sm:text-[15.5px] leading-relaxed text-[var(--ink-2)] max-w-2xl mx-auto mt-3.5 sm:mt-4"
+          >
+            {hero.sub}
+          </p>
+
+          {currentTab === "store" ? (
+            <div
+              style={{ animationDelay: `${baseDelay + 380}ms` }}
+              className="ql-rise mt-4 sm:mt-5 flex items-center justify-center gap-3 flex-wrap text-xs"
+            >
+              <button
+                type="button"
+                onClick={() => handleGoToRedeem()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--rule-strong)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[var(--ink)] font-medium transition-all cursor-pointer"
+              >
+                <span>已有卡密？直接进入 7 合 1 自助开通台</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[var(--clay)]" />
+              </button>
+            </div>
+          ) : null}
+        </section>
+
+        {/* 三大核心业务舱 */}
         {currentTab === "store" ? (
           <StorePricingCabin onGoToRedeem={handleGoToRedeem} />
         ) : null}
 
         {currentTab === "redeem" ? (
-          <div className="space-y-5">
-            <div className="p-3.5 border border-white/[0.08] bg-[#070d16]/85 backdrop-blur-md rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-              <div className="flex items-center gap-2 text-gray-300">
-                <span className="w-2 h-2 bg-[var(--holo)] rounded-full" />
-                <span>
-                  支持 ChatGPT 四档、Gemini 学生认证、Codex 在线接码、Grok、TG 会员、Muse 助力与 Gemini Pro 自动识别开通。
-                </span>
-              </div>
-              <button
-                onClick={() => setCurrentTab("store")}
-                className="text-[var(--warm)] hover:underline inline-flex items-center gap-1 text-[11px] self-start sm:self-auto cursor-pointer"
-              >
-                尚未获取卡密？返回商城选购 →
-              </button>
-            </div>
-
-            <FulfillmentConsole
-              presetPrefix={presetPrefix}
-              onTaskChange={(count) => setActiveTaskCount(count)}
-            />
-          </div>
+          <FulfillmentConsole
+            presetPrefix={presetPrefix}
+            onTaskChange={(count) => setActiveTaskCount(count)}
+            onLineChange={(line) => setActiveLine(line)}
+          />
         ) : null}
 
         {currentTab === "query" ? (

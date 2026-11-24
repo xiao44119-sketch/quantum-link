@@ -29,7 +29,8 @@ export const SessionHelperModal: React.FC<Props> = ({
         mfa: false,
       },
       expires: "2026-10-15T00:00:00.000Z",
-      accessToken: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.sandbox_token_example_eyJleHAiOjE3ODk5MDAwMDB9.signature_hash_preview",
+      accessToken:
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.sandbox_token_example_eyJleHAiOjE3ODk5MDAwMDB9.signature_hash_preview",
       authProvider: "auth0",
     },
     null,
@@ -43,91 +44,95 @@ export const SessionHelperModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl border border-[var(--line-strong)] bg-[#090e15] p-6 text-white corner-bracket shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-md">
+      <div className="ql-pop relative w-full max-w-2xl rounded-3xl border border-[var(--rule-strong)] bg-[var(--bg-elevated)] p-6 sm:p-7 text-[var(--ink)] shadow-2xl backdrop-blur-2xl">
         {/* 标题 */}
-        <div className="flex items-center justify-between border-b border-[var(--line)] pb-4 mb-4">
-          <div className="flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-[var(--holo)]" />
-            <h3 className="font-mono text-base font-bold tracking-wider text-white">
-              SESSION 凭证获取协议指南 (PROTOCOL DOC)
-            </h3>
+        <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] flex items-center justify-center text-[var(--clay)]">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-serif-editorial text-lg font-semibold text-[var(--ink)]">
+                三步获取 ChatGPT Session 授权凭证
+              </h3>
+              <span className="text-xs text-[var(--ink-3)]">
+                零密码安全协议 · 仅用于本次官方订阅下发校验
+              </span>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-[var(--fg-muted)] hover:text-white transition-colors"
+            className="w-8 h-8 rounded-full bg-[var(--bg-subtle)] border border-[var(--rule)] flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* 步骤指南 */}
-        <div className="space-y-4 text-xs font-mono text-[var(--fg-muted)] leading-relaxed">
-          <p className="text-gray-300">
-            为了自动化下发官方 Plus 或 Pro 订阅，系统需要获取目标账号当前生效的授权会话凭证。
-          </p>
-
+        <div className="space-y-4 text-xs text-[var(--ink-2)] leading-relaxed">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3 border border-[var(--line)] bg-black/40">
-              <span className="text-[var(--holo)] font-bold block mb-1">01. 网页登录</span>
-              <span>在浏览器中打开并登录您的目标账号 chatgpt.com</span>
+            <div className="p-3.5 rounded-2xl border border-[var(--rule)] bg-[var(--bg-subtle)]">
+              <span className="text-[var(--clay)] font-semibold block mb-1">01 · 登录网页版</span>
+              <span>在电脑或手机浏览器打开并登录需要充值的 chatgpt.com 账号。</span>
             </div>
-            <div className="p-3 border border-[var(--line)] bg-black/40">
-              <span className="text-[var(--holo)] font-bold block mb-1">02. 访问会话接口</span>
+            <div className="p-3.5 rounded-2xl border border-[var(--rule)] bg-[var(--bg-subtle)]">
+              <span className="text-[var(--clay)] font-semibold block mb-1">02 · 打开凭证页</span>
               <span>
-                在同一浏览器新建标签页访问:{" "}
+                保持登录，点击访问{" "}
                 <a
                   href="https://chatgpt.com/api/auth/session"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[var(--warm)] underline inline-flex items-center gap-0.5"
+                  className="text-[var(--clay)] font-medium underline inline-flex items-center gap-0.5"
                 >
                   /api/auth/session <ExternalLink className="w-3 h-3" />
                 </a>
               </span>
             </div>
-            <div className="p-3 border border-[var(--line)] bg-black/40">
-              <span className="text-[var(--holo)] font-bold block mb-1">03. 全选复制</span>
-              <span>将页面显示的完整 JSON 文本全量复制并粘贴到兑换框中</span>
+            <div className="p-3.5 rounded-2xl border border-[var(--rule)] bg-[var(--bg-subtle)]">
+              <span className="text-[var(--clay)] font-semibold block mb-1">03 · 全选粘贴</span>
+              <span>把页面里的全部代码（Ctrl+A / 全选）复制，粘贴回开通台输入框即可。</span>
             </div>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1 mt-2">
-              <span className="text-gray-400">标准 Session 示例 (点击可一键载入测试):</span>
+            <div className="flex items-center justify-between mb-1.5 mt-1">
+              <span className="text-[var(--ink-3)]">标准 JSON 格式参考：</span>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="inline-flex items-center gap-1 text-[var(--holo)] hover:underline text-[11px]"
+                className="inline-flex items-center gap-1 text-[var(--clay)] hover:underline text-[11.5px] font-medium cursor-pointer"
               >
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                {copied ? "已复制" : "复制示例 JSON"}
+                {copied ? "已复制" : "复制示例格式"}
               </button>
             </div>
-            <pre className="p-3 border border-[var(--line)] bg-black/60 text-[11px] text-cyan-200 overflow-x-auto max-h-48 font-mono">
+            <pre className="p-3.5 rounded-2xl border border-[var(--rule)] bg-[var(--bg-field)] text-[11px] text-[var(--ink-2)] overflow-x-auto max-h-44 font-mono">
               {sampleSession}
             </pre>
           </div>
         </div>
 
         {/* 底部按钮 */}
-        <div className="mt-6 flex justify-end gap-3 font-mono text-xs">
+        <div className="mt-6 flex items-center justify-end gap-2.5 text-xs">
           <button
             type="button"
             onClick={() => {
               onApplySample(sampleSession);
               onClose();
             }}
-            className="px-4 py-2 border border-[var(--holo)] text-[var(--holo)] bg-cyan-950/40 hover:bg-cyan-900/60 transition-colors"
+            className="px-4 py-2.5 rounded-xl border border-[var(--rule-strong)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[var(--ink)] font-medium transition-colors cursor-pointer"
           >
-            载入此示例进行沙盒演练 (LOAD MOCK)
+            填入示例体验体检流程
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-[var(--line)] text-gray-400 hover:text-white"
+            className="px-5 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold transition-opacity hover:opacity-95 cursor-pointer"
           >
-            关闭 (CLOSE)
+            知道了
           </button>
         </div>
       </div>

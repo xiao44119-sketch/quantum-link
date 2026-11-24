@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "QuantumLink · AI 订阅自动化履约控制中枢",
-  description: "面向高强度开发者的 ChatGPT Plus / Pro 自动化极速履约系统，高可用异步任务调度与 409 防重保护机制。",
+  title: "骁清 FINN · 数字算力买手馆 | ChatGPT · Gemini · Grok 官方直连履约",
+  description:
+    "官方正版 AI 订阅与开发者认证中心：支持 ChatGPT Plus / Pro 10x / 20x / 50x、Gemini 学生认证、Grok、Codex 在线接码与 Telegram 大会员一步优雅开通。",
 };
 
 export default function RootLayout({
@@ -12,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" className="dark bg-[#05070a]">
-      <body className="min-h-screen bg-[#05070a] antialiased text-[#eaf8f7]">
+    <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
+      <body className="min-h-screen antialiased">
         {children}
       </body>
     </html>
