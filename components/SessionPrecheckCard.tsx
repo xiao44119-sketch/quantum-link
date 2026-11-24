@@ -1,22 +1,22 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
-  Clock, 
-  ShieldCheck, 
-  UserCheck, 
-  Sparkles,
-  RefreshCw
+import {
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  ShieldCheck,
+  UserCheck,
+  RefreshCw,
 } from "lucide-react";
 
 interface Props {
   sessionInput: string;
+  cardCode?: string;
 }
 
-export type SessionState = "EMPTY" | "ELIGIBLE" | "EXPIRED" | "STORE_WAIT" | "INVALID";
+export type SessionState = "EMPTY" | "ELIGIBLE" | "EXPIRED" | "STORE_WAIT" | "PRO50_WARN" | "INVALID";
 
 export interface SessionDiagnostic {
   state: SessionState;
@@ -29,7 +29,7 @@ export interface SessionDiagnostic {
   recommendation?: string;
 }
 
-export const SessionPrecheckCard: React.FC<Props> = ({ sessionInput }) => {
+export const SessionPrecheckCard: React.FC<Props> = ({ sessionInput, cardCode = "" }) => {
   const diagnostic = useMemo<SessionDiagnostic>(() => {
     const raw = sessionInput.trim();
     if (!raw) {
@@ -46,28 +46,32 @@ export const SessionPrecheckCard: React.FC<Props> = ({ sessionInput }) => {
 
     try {
       const data = JSON.parse(raw);
-      
-      // 提取关键字段
+
       const email = data.user?.email || null;
       const name = data.user?.name || null;
       const expires = data.expires || null;
       const planType = data.account?.planType || (data.user?.is_free ? "free" : null);
-      const isDelinquent = !!data.account?.isDelinquent;
+      const isDelinquent = Boolean(data.account?.isDelinquent);
+      const upperCode = cardCode.trim().toUpperCase();
+      const isPro50 = upperCode.startsWith("P50X-") || upperCode.startsWith("P500-");
+      const isPro10Or20 =
+        upperCode.startsWith("P10X-") ||
+        upperCode.startsWith("P5X-") ||
+        upperCode.startsWith("P20X-");
 
-      if (!email && !data.accessToken) {
+      if (!data.accessToken) {
         return {
           state: "INVALID",
-          email: null,
-          name: null,
+          email,
+          name,
           expiresAt: null,
           isExpired: false,
-          planType: null,
-          message: "JSON 格式有效，但未检测到合法的 user.email 或 accessToken 凭据字段",
-          recommendation: "请确认是否完整复制了 chatgpt.com/api/auth/session 页面的全部内容",
+          planType,
+          message: "JSON 解析成功，但缺少核心字段 accessToken（可能未登录或只复制了片段）",
+          recommendation: "请先在浏览器登录 chatgpt.com，再重新打开 chatgpt.com/api/auth/session 全选复制",
         };
       }
 
-      // 检查过期时间
       let isExpired = false;
       let expiresFormatted: string | null = null;
       if (expires) {
@@ -90,12 +94,11 @@ export const SessionPrecheckCard: React.FC<Props> = ({ sessionInput }) => {
           isExpired: true,
           planType,
           message: "该 Session 凭证已过期失效 (EXPIRED)",
-          recommendation: "请在 chatgpt.com 网页端刷新或重新登录，然后重新获取最新 session",
+          recommendation: "请在 chatgpt.com 网页端刷新对话页（切勿点退出登录），重新复制最新 Session",
         };
       }
 
-      // 检查 72 小时 Apple/Google 内购或未决账单状态 (GPTibo 同款前置拦截)
-      if (isDelinquent || planType === "plus_in_grace" || raw.includes("store_wait_72h")) {
+      if (isDelinquent || planType === "plus_in_grace") {
         return {
           state: "STORE_WAIT",
           email,
@@ -103,21 +106,35 @@ export const SessionPrecheckCard: React.FC<Props> = ({ sessionInput }) => {
           expiresAt: expiresFormatted,
           isExpired: false,
           planType,
-          message: "检测到账号处于移动端商店结算宽限期 (STORE_WAIT_72H)",
-          recommendation: "若此前通过 iOS App Store / Google Play 订阅，到期后需等待 72 小时由 OpenAI 彻底释放账单，方可代充",
+          message: "检测到账号处于欠费或应用商店结算宽限期",
+          recommendation: "若此前通过 iOS / Google Play 订阅，到期后需等待约 72 小时账单彻底释放后再提交代充",
         };
       }
 
-      // 检测合格通过
+      if (isPro50 && planType && planType !== "free") {
+        return {
+          state: "PRO50_WARN",
+          email,
+          name,
+          expiresAt: expiresFormatted,
+          isExpired: false,
+          planType,
+          message: `检测到当前账号套餐为 ${planType}，而 Pro 50x 仅限无任何订阅的纯免费账号`,
+          recommendation: "请更换一个从未订阅或已彻底过期的免费账号（前置拦截不会消耗您的 P50X 卡密）",
+        };
+      }
+
       return {
         state: "ELIGIBLE",
         email,
         name,
         expiresAt: expiresFormatted,
         isExpired: false,
-        planType: planType || "free (准备升级)",
-        message: "Session 凭据校验通过，账号状态健康",
-        recommendation: "官方签名有效，已就绪！点击下方按钮即可 10 秒全自动下发激活",
+        planType: planType || "free / 待上游实时核验",
+        message: isPro10Or20
+          ? "Session 签名有效！支持无订阅免费号新开，或菲区(PHP)在途订阅自动无损直升"
+          : "Session 凭据签名校验通过，账号格式健康",
+        recommendation: "提交后到开通完成前，请保持浏览器中 chatgpt.com 的登录状态不要退出",
       };
     } catch {
       return {
@@ -127,104 +144,107 @@ export const SessionPrecheckCard: React.FC<Props> = ({ sessionInput }) => {
         expiresAt: null,
         isExpired: false,
         planType: null,
-        message: "JSON 语法解析失败，存在未闭合括号或非法字符",
-        recommendation: "请使用 Ctrl+A 全选复制 chatgpt.com/api/auth/session 的完整内容，不要遗漏大括号 {}",
+        message: "JSON 语法解析失败，存在未闭合括号或多余字符",
+        recommendation: "请使用 Ctrl+A / Cmd+A 全选复制 chatgpt.com/api/auth/session 完整内容",
       };
     }
-  }, [sessionInput]);
+  }, [sessionInput, cardCode]);
 
   if (diagnostic.state === "EMPTY") return null;
 
+  const isGood = diagnostic.state === "ELIGIBLE";
+  const isWarn = diagnostic.state === "STORE_WAIT" || diagnostic.state === "PRO50_WARN";
+
   return (
-    <div 
+    <div
       className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-300 font-mono text-xs ${
-        diagnostic.state === "ELIGIBLE"
+        isGood
           ? "bg-emerald-950/25 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
-          : diagnostic.state === "STORE_WAIT"
+          : isWarn
           ? "bg-amber-950/30 border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.12)]"
           : "bg-rose-950/30 border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.12)]"
       }`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/[0.08] pb-3 mb-3">
-        {/* 左侧目标账号标识 */}
         <div className="flex items-center gap-2.5">
-          <div 
+          <div
             className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-              diagnostic.state === "ELIGIBLE"
+              isGood
                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                : diagnostic.state === "STORE_WAIT"
+                : isWarn
                 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                 : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
             }`}
           >
-            {diagnostic.state === "ELIGIBLE" && <UserCheck className="w-4 h-4" />}
-            {diagnostic.state === "STORE_WAIT" && <Clock className="w-4 h-4" />}
-            {diagnostic.state === "EXPIRED" && <RefreshCw className="w-4 h-4" />}
-            {diagnostic.state === "INVALID" && <XCircle className="w-4 h-4" />}
+            {isGood ? (
+              <UserCheck className="w-4 h-4" />
+            ) : isWarn ? (
+              <AlertTriangle className="w-4 h-4" />
+            ) : diagnostic.state === "EXPIRED" ? (
+              <RefreshCw className="w-4 h-4" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
           </div>
           <div>
             <span className="text-[10px] text-neutral-400 block leading-none mb-1">
               TARGET ACCOUNT / 识别目标账号:
             </span>
             <span className="text-white font-bold tracking-wide text-xs sm:text-sm break-all">
-              {diagnostic.email || "未解析到有效邮箱"}
+              {diagnostic.email || "已检测到有效 accessToken"}
             </span>
           </div>
         </div>
 
-        {/* 右侧诊断状态胶囊 */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span 
+          <span
             className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
-              diagnostic.state === "ELIGIBLE"
+              isGood
                 ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/40"
-                : diagnostic.state === "STORE_WAIT"
+                : isWarn
                 ? "bg-amber-500/20 text-amber-300 border-amber-400/40"
                 : "bg-rose-500/20 text-rose-300 border-rose-400/40"
             }`}
           >
-            {diagnostic.state === "ELIGIBLE" && <CheckCircle2 className="w-3 h-3" />}
-            {diagnostic.state === "STORE_WAIT" && <AlertTriangle className="w-3 h-3" />}
-            {diagnostic.state === "EXPIRED" && <Clock className="w-3 h-3" />}
-            {diagnostic.state === "INVALID" && <XCircle className="w-3 h-3" />}
+            {isGood ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
             <span>
-              {diagnostic.state === "ELIGIBLE" && "检测合格 · 可立即充值"}
-              {diagnostic.state === "STORE_WAIT" && "72h 宽限期提示"}
-              {diagnostic.state === "EXPIRED" && "凭据已过期"}
-              {diagnostic.state === "INVALID" && "凭据解析异常"}
+              {isGood
+                ? "凭证校验通过"
+                : diagnostic.state === "PRO50_WARN"
+                ? "Pro 50x 免费号限制"
+                : diagnostic.state === "STORE_WAIT"
+                ? "账单宽限期提示"
+                : diagnostic.state === "EXPIRED"
+                ? "凭据已过期"
+                : "凭据格式有误"}
             </span>
           </span>
         </div>
       </div>
 
-      {/* 详细诊断信息与指引 */}
       <div className="space-y-1.5 text-[11px] leading-relaxed">
         <div className="flex items-start gap-2 text-neutral-300">
           <span className="text-neutral-500 flex-shrink-0">诊断结论:</span>
-          <span className={diagnostic.state === "ELIGIBLE" ? "text-emerald-300" : "text-amber-200"}>
-            {diagnostic.message}
-          </span>
+          <span className={isGood ? "text-emerald-300" : "text-amber-200"}>{diagnostic.message}</span>
         </div>
-
-        {diagnostic.recommendation && (
+        {diagnostic.recommendation ? (
           <div className="flex items-start gap-2 text-neutral-400">
             <span className="text-neutral-500 flex-shrink-0">操作指引:</span>
             <span>{diagnostic.recommendation}</span>
           </div>
-        )}
-
-        {diagnostic.expiresAt && (
+        ) : null}
+        {diagnostic.expiresAt ? (
           <div className="flex items-center justify-between pt-2 border-t border-white/[0.04] text-[10px] text-neutral-400">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-cyan-400" />
-              <span>凭据到期时间: {diagnostic.expiresAt}</span>
+              <span>Session 有效期至: {diagnostic.expiresAt}</span>
             </span>
             <span className="flex items-center gap-1 text-emerald-400">
               <ShieldCheck className="w-3 h-3" />
               <span>零密码安全解构</span>
             </span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

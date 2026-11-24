@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSuZheCheckoutProducts } from "@/lib/suzhe-checkout-service";
+import { getMergedStorefrontProducts } from "@/lib/suzhe-order-service";
 
 export async function GET() {
-  try {
-    const products = await getSuZheCheckoutProducts();
-    return NextResponse.json(products);
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
-  }
+  const res = await getMergedStorefrontProducts({ includeDisabled: false });
+  return NextResponse.json({
+    success: true,
+    fromUpstream: res.fromUpstream,
+    items: res.products,
+  });
 }

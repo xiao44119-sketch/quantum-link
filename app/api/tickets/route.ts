@@ -1,33 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTickets, createTicket, updateTicket } from "@/lib/tickets-service";
-import { getStoreData } from "@/lib/admin-store-service";
+import {
+  createVaultTicket,
+  listVaultTickets,
+  updateVaultTicket,
+  verifyAdminSecret,
+} from "@/lib/cloud-vault";
 
 export async function GET(req: NextRequest) {
   try {
     const adminSecret = req.headers.get("x-admin-secret");
-    const storeData = getStoreData();
-    const isAdmin = adminSecret && adminSecret === storeData.adminSecret;
+    const isAdmin = await verifyAdminSecret(adminSecret);
 
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get("order_id");
     const ticketId = searchParams.get("ticket_id");
 
-    const all = getTickets();
-
     if (isAdmin) {
-      return NextResponse.json({ success: true, tickets: all });
+      const tickets = await listVaultTickets();
+      return NextResponse.json({ success: true, tickets });
     }
 
     if (ticketId) {
-      const match = all.find((t) => t.id === ticketId);
-      return NextResponse.json({ success: true, ticket: match || null });
+      const tickets = await listVaultTickets({ ticketId });
+      return NextResponse.json({ success: true, ticket: tickets[0] || null });
     }
 
     if (orderId) {
-      const matches = all.filter(
-        (t) => t.order_id.toLowerCase() === orderId.toLowerCase()
-      );
-      return NextResponse.json({ success: true, tickets: matches });
+      const tickets = await listVaultTickets({ orderId });
+      return NextResponse.json({ success: true, tickets });
     }
 
     return NextResponse.json({ success: false, error: "未提供查询凭据" }, { status: 400 });
@@ -43,12 +43,12 @@ export async function POST(req: NextRequest) {
 
     if (!order_id || !contact || !description) {
       return NextResponse.json(
-        { success: false, error: "请完整填写订单号、联系方式与问题描述" },
+        { success: false, error: "请完整填写关联单号/卡密、联系方式与问题描述" },
         { status: 400 }
       );
     }
 
-    const ticket = createTicket({
+    const ticket = await createVaultTicket({
       order_id,
       category: category || "general",
       contact,
@@ -64,9 +64,9 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const adminSecret = req.headers.get("x-admin-secret");
-    const storeData = getStoreData();
+    const isAdmin = await verifyAdminSecret(adminSecret);
 
-    if (!adminSecret || adminSecret !== storeData.adminSecret) {
+    if (!isAdmin) {
       return NextResponse.json({ success: false, error: "无权访问" }, { status: 401 });
     }
 
@@ -77,7 +77,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: "未指定工单号" }, { status: 400 });
     }
 
-    const updated = updateTicket(ticket_id, { status, reply });
+    const updated = await updateVaultTicket(ticket_id, { status, reply });
     if (!updated) {
       return NextResponse.json({ success: false, error: "工单未找到" }, { status: 404 });
     }

@@ -1,64 +1,95 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { 
-  Lock, 
-  Key, 
-  Save, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  ArrowLeft, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Lock,
+  Key,
+  Save,
+  Trash2,
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
   ExternalLink,
   QrCode,
   ShieldCheck,
   Flame,
-  Layers,
   Settings,
-  X,
   Upload,
-  ImageIcon,
   Headphones,
-  MessageSquare,
   Copy,
   Check,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag,
+  Layers,
+  Wallet,
+  Send,
+  Search,
+  Star,
 } from "lucide-react";
-import { StoreProduct } from "@/config/store-products";
+import {
+  ProductOverrideConfig,
+  RetailOrderRecord,
+  StoreProduct,
+} from "@/lib/types";
+
+type AdminTab = "ORDERS" | "CATALOG" | "TICKETS" | "SETTINGS";
 
 export default function AdminPage() {
   const [authKey, setAuthKey] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminTab>("ORDERS");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingField, setUploadingField] = useState<"qrCodeImage" | "wechatGroupQr" | null>(null);
+  const [uploadingField, setUploadingField] = useState<
+    "qrCodeImage" | "alipayQrImage" | "wechatGroupQr" | null
+  >(null);
 
+  // Store & Catalog State
+  const [cloudVaultActive, setCloudVaultActive] = useState(true);
   const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [productOverrides, setProductOverrides] = useState<Record<string, ProductOverrideConfig>>({});
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogFilter, setCatalogFilter] = useState<"ENABLED" | "INSTOCK" | "ALL">("ENABLED");
+  const [globalMarkupPercent, setGlobalMarkupPercent] = useState(22);
+  const [minProfitFen, setMinProfitFen] = useState(300);
+  const [paymentMode, setPaymentMode] = useState<"manual_qr" | "epay_auto">("manual_qr");
+  const [sandboxDemoEnabled, setSandboxDemoEnabled] = useState(false);
+
   const [contact, setContact] = useState<any>({
-    wechat: "AI-ASSIST-VIP",
+    wechat: "18300425760",
     wechatGroupTitle: "Finn 极客 AI 交流群",
     qqGroup: "837192045",
     telegramChannel: "https://t.me/finn_vibe_link",
-    qrNote: "扫码添加客服 / 付款",
-    noticeText: "支持充值至您现有的个人自用账号，正规海外实体卡结算，保留历史对话与全部数据，一人一卡安全稳定。",
-    handlingFeePercent: 2.0
+    qrNote: "微信 / 支付宝扫码付款",
+    noticeText: "",
   });
-
+  const [epay, setEpay] = useState<any>({ url: "", pid: "", key: "" });
   const [suzheApiKey, setSuzheApiKey] = useState("");
-  const [testingPing, setTestingPing] = useState(false);
-  const [pingResult, setPingResult] = useState<{ success: boolean; message?: string; client_name?: string; error?: string } | null>(null);
-  const [ledger, setLedger] = useState<{ total_commission?: string; settled_orders_count?: number; pending_settlement?: string } | null>(null);
+  const [suzheOrderKey, setSuzheOrderKey] = useState("");
+  const [hasEnvActivationKey, setHasEnvActivationKey] = useState(false);
+  const [hasEnvOrderKey, setHasEnvOrderKey] = useState(false);
 
-  const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
-  const [isNewProduct, setIsNewProduct] = useState(false);
-  const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  // Orders, Ledger & Tickets State
+  const [orders, setOrders] = useState<RetailOrderRecord[]>([]);
+  const [orderFilter, setOrderFilter] = useState<string>("ALL");
+  const [fulfillingOrderId, setFulfillingOrderId] = useState<string | null>(null);
+  const [manualDeliverOpenId, setManualDeliverOpenId] = useState<string | null>(null);
+  const [manualDeliverText, setManualDeliverText] = useState("");
 
+  const [ledger, setLedger] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [ticketFilter, setTicketFilter] = useState<"ALL" | "pending" | "resolved">("ALL");
+
+  const [testingPing, setTestingPing] = useState(false);
+  const [pingResult, setPingResult] = useState<any>(null);
+  const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const showToast = (type: "success" | "error", text: string) => {
+    setToastMsg({ type, text });
+    setTimeout(() => setToastMsg(null), 3500);
+  };
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -66,122 +97,118 @@ export default function AdminPage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const showToast = (type: "success" | "error", text: string) => {
-    setToastMsg({ type, text });
-    setTimeout(() => setToastMsg(null), 3000);
-  };
-
-  const fetchTickets = async (secret?: string) => {
+  const fetchOrders = useCallback(async (secret?: string) => {
+    const s = (secret || authKey).trim();
+    if (!s) return;
     try {
-      const resp = await fetch("/api/tickets", {
-        headers: { "x-admin-secret": (secret || authKey).trim() },
+      const resp = await fetch("/api/checkout/orders?limit=100", {
+        headers: { "x-admin-secret": s },
       });
       const d = await resp.json();
-      if (d.success && d.tickets) {
-        setTickets(d.tickets);
+      if (d.success && Array.isArray(d.orders)) {
+        setOrders(d.orders);
       }
-    } catch (e) {}
-  };
+    } catch {}
+  }, [authKey]);
 
-  const handleUpdateTicket = async (ticketId: string, status: "pending" | "processing" | "resolved", reply?: string) => {
+  const fetchLedger = useCallback(async (secret?: string) => {
+    const s = (secret || authKey).trim();
+    if (!s) return;
     try {
-      const resp = await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-secret": authKey.trim(),
-        },
-        body: JSON.stringify({ ticket_id: ticketId, status, reply }),
+      const resp = await fetch("/api/checkout/ledger", {
+        headers: { "x-admin-secret": s },
       });
-      const d = await resp.json();
-      if (d.success) {
-        showToast("success", `工单状态已更新为：${status === "resolved" ? "已解决" : status === "processing" ? "处理中" : "待处理"}`);
-        fetchTickets();
-      }
-    } catch {
-      showToast("error", "更新工单失败");
-    }
-  };
-
-  const fetchLedgerData = async () => {
-    try {
-      const resp = await fetch("/api/checkout/ledger");
       if (resp.ok) {
         const d = await resp.json();
         setLedger(d);
       }
-    } catch (e) {}
-  };
+    } catch {}
+  }, [authKey]);
 
-  const handleTestPing = async () => {
-    setTestingPing(true);
-    setPingResult(null);
+  const fetchTickets = useCallback(async (secret?: string) => {
+    const s = (secret || authKey).trim();
+    if (!s) return;
     try {
-      const resp = await fetch("/api/checkout/ping", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: suzheApiKey.trim() }),
+      const resp = await fetch("/api/tickets", {
+        headers: { "x-admin-secret": s },
       });
-      const data = await resp.json();
-      setPingResult(data);
-      if (data.success) {
-        showToast("success", `连接成功！商户：${data.client_name || "已认证"}`);
-        fetchLedgerData();
-      } else {
-        showToast("error", data.error || "连接测试失败");
+      const d = await resp.json();
+      if (d.success && Array.isArray(d.tickets)) {
+        setTickets(d.tickets);
       }
-    } catch (err: any) {
-      setPingResult({ success: false, error: err.message });
-      showToast("error", "网络请求失败");
-    } finally {
-      setTestingPing(false);
-    }
-  };
+    } catch {}
+  }, [authKey]);
+
+  const fetchStoreAdmin = useCallback(
+    async (secret?: string, forceRefresh = false) => {
+      const s = (secret || authKey).trim();
+      const resp = await fetch(`/api/admin/store${forceRefresh ? "?refresh=1" : ""}`, {
+        headers: { "x-admin-secret": s },
+      });
+      const res = await resp.json();
+      if (!resp.ok || !res.success) {
+        throw new Error(res.error || "unauthorized");
+      }
+      setCloudVaultActive(Boolean(res.cloudVaultActive));
+      setProducts(res.data.products || []);
+      setProductOverrides(res.data.productOverrides || {});
+      setPaymentMode(res.data.paymentMode || "manual_qr");
+      setSandboxDemoEnabled(Boolean(res.data.sandboxDemoEnabled));
+      setGlobalMarkupPercent(res.data.globalMarkupPercent ?? 22);
+      setMinProfitFen(res.data.minProfitFen ?? 300);
+      if (res.data.contact) setContact(res.data.contact);
+      if (res.data.epay) setEpay(res.data.epay);
+      setHasEnvActivationKey(Boolean(res.data.hasEnvActivationKey));
+      setHasEnvOrderKey(Boolean(res.data.hasEnvOrderKey));
+      setSuzheApiKey(res.data.suzheApiKey || "");
+      setSuzheOrderKey(res.data.suzheOrderKey || "");
+    },
+    [authKey]
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authKey.trim()) return;
-
     setLoading(true);
     try {
-      const resp = await fetch("/api/admin/store", {
-        headers: { "x-admin-secret": authKey.trim() },
-      });
-
-      const res = await resp.json();
-      if (!resp.ok) {
-        showToast("error", "管理员口令错误，请重新输入");
-        return;
-      }
-
+      await fetchStoreAdmin(authKey.trim(), false);
       setIsAuthenticated(true);
-      setProducts(res.data.products || []);
-      if (res.data.contact) {
-        setContact(res.data.contact);
-      }
-      if (res.data.suzheApiKey) {
-        setSuzheApiKey(res.data.suzheApiKey);
-      }
-      fetchLedgerData();
-      fetchTickets(authKey.trim());
-      showToast("success", "控制台身份验证通过");
-    } catch (err) {
-      showToast("error", "网络连接异常");
+      await Promise.all([
+        fetchOrders(authKey.trim()),
+        fetchLedger(authKey.trim()),
+        fetchTickets(authKey.trim()),
+      ]);
+      showToast("success", "身份验证通过 · 已接入云端保险柜");
+    } catch {
+      showToast("error", "管理员安全口令不正确，请重试");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveAll = async (newProducts?: StoreProduct[], newContact?: any, newSuzheKey?: string) => {
+  // 已登录时每 8 秒静默刷新待核销订单
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const t = setInterval(() => {
+      fetchOrders();
+    }, 8000);
+    return () => clearInterval(t);
+  }, [isAuthenticated, fetchOrders]);
+
+  const handleSaveAll = async (nextOverrides?: Record<string, ProductOverrideConfig>) => {
     setSaving(true);
     try {
       const payload = {
-        products: newProducts || products,
-        contact: newContact || contact,
-        suzheApiKey: (newSuzheKey !== undefined ? newSuzheKey : suzheApiKey).trim(),
-        checkoutMode: "suzhe_managed",
+        paymentMode,
+        sandboxDemoEnabled,
+        globalMarkupPercent,
+        minProfitFen,
+        contact,
+        epay,
+        suzheApiKey: suzheApiKey.trim(),
+        suzheOrderKey: suzheOrderKey.trim(),
+        productOverrides: nextOverrides ?? productOverrides,
       };
-
       const resp = await fetch("/api/admin/store", {
         method: "POST",
         headers: {
@@ -190,21 +217,86 @@ export default function AdminPage() {
         },
         body: JSON.stringify(payload),
       });
-
-      const res = await resp.json();
-      if (resp.ok) {
-        showToast("success", "所有更改已保存，前台已实时同步生效！");
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        if (data.products) setProducts(data.products);
+        showToast("success", data.message || "全部更改已写入云端保险柜并实时生效！");
       } else {
-        showToast("error", res.error || "保存失败");
+        showToast("error", data.error || "保存失败");
       }
-    } catch (e) {
+    } catch {
       showToast("error", "保存遇到网络错误");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUploadQr = async (field: "qrCodeImage" | "wechatGroupQr", file: File) => {
+  const updateProductField = (productCode: string, patch: Partial<ProductOverrideConfig>) => {
+    setProductOverrides((prev) => {
+      const next = {
+        ...prev,
+        [productCode]: {
+          ...(prev[productCode] || {}),
+          ...patch,
+        },
+      };
+      return next;
+    });
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id !== productCode) return p;
+        const retailFen =
+          patch.retailPriceFen !== undefined ? patch.retailPriceFen : p.retailPriceFen;
+        return {
+          ...p,
+          enabled: patch.enabled !== undefined ? patch.enabled : p.enabled,
+          isPopular: patch.isPopular !== undefined ? patch.isPopular : p.isPopular,
+          title: patch.title !== undefined ? patch.title : p.title,
+          badge: patch.badge !== undefined ? patch.badge : p.badge,
+          retailPriceFen: retailFen,
+          price: retailFen !== undefined ? (retailFen / 100).toFixed(2) : p.price,
+        };
+      })
+    );
+  };
+
+  const handleFulfillOrder = async (
+    orderId: string,
+    action: "confirm_and_fulfill_suzhe" | "manual_deliver" | "close" | "mark_refunded"
+  ) => {
+    setFulfillingOrderId(orderId);
+    try {
+      const resp = await fetch(`/api/checkout/orders/${encodeURIComponent(orderId)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": authKey.trim(),
+        },
+        body: JSON.stringify({
+          action,
+          manual_content: action === "manual_deliver" ? manualDeliverText : undefined,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        showToast("error", data.detail || data.error || "操作未成功");
+      } else {
+        showToast("success", data.message || "订单状态已更新！");
+        setManualDeliverOpenId(null);
+        setManualDeliverText("");
+      }
+      await Promise.all([fetchOrders(), fetchLedger()]);
+    } catch {
+      showToast("error", "请求异常，请重试");
+    } finally {
+      setFulfillingOrderId(null);
+    }
+  };
+
+  const handleUploadQr = async (
+    field: "qrCodeImage" | "alipayQrImage" | "wechatGroupQr",
+    file: File
+  ) => {
     if (!file) return;
     setUploadingField(field);
     try {
@@ -213,71 +305,92 @@ export default function AdminPage() {
 
       const resp = await fetch("/api/admin/upload", {
         method: "POST",
-        headers: {
-          "x-admin-secret": authKey.trim(),
-        },
+        headers: { "x-admin-secret": authKey.trim() },
         body: formData,
       });
-
       const res = await resp.json();
       if (resp.ok && res.url) {
-        const updatedContact = { ...contact, [field]: res.url };
-        setContact(updatedContact);
-        showToast("success", `${field === "qrCodeImage" ? "收款/客服二维码" : "微信群二维码"}已上传！记得点击右上角保存。`);
+        setContact((prev: any) => ({ ...prev, [field]: res.url }));
+        showToast("success", "二维码已存入 Supabase 云端保险柜！请点击右上角【保存全部修改】生效。");
       } else {
         showToast("error", res.error || "上传失败");
       }
     } catch (e: any) {
-      showToast("error", "上传请求异常: " + e.message);
+      showToast("error", "上传异常: " + e.message);
     } finally {
       setUploadingField(null);
     }
   };
 
-  const handleDeleteProduct = (id: string) => {
-    if (!confirm("确认下架并删除该商品吗？")) return;
-    const updated = products.filter((p) => p.id !== id);
-    setProducts(updated);
-    handleSaveAll(updated);
-  };
-
-  const handleSaveProductModal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingProduct) return;
-
-    let updated: StoreProduct[];
-    if (isNewProduct) {
-      updated = [...products, editingProduct];
-    } else {
-      updated = products.map((p) => (p.id === editingProduct.id ? editingProduct : p));
+  const handleTestPing = async () => {
+    setTestingPing(true);
+    setPingResult(null);
+    try {
+      const resp = await fetch("/api/checkout/ping", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": authKey.trim(),
+        },
+        body: JSON.stringify({
+          apiKey: suzheApiKey.trim() || undefined,
+          orderKey: suzheOrderKey.trim() || undefined,
+        }),
+      });
+      const data = await resp.json();
+      setPingResult(data);
+      if (data.success) {
+        showToast("success", `连通正常！代理余额: ¥${data.balance ?? "0.00"}`);
+        fetchLedger();
+      } else {
+        showToast("error", data.error || "密钥检测未通过");
+      }
+    } catch {
+      showToast("error", "检测请求失败");
+    } finally {
+      setTestingPing(false);
     }
-
-    setProducts(updated);
-    setEditingProduct(null);
-    handleSaveAll(updated);
   };
 
-  const handleOpenAddProduct = () => {
-    setIsNewProduct(true);
-    setEditingProduct({
-      id: "product_" + Date.now().toString(36),
-      title: "新 AI 订阅商品",
-      sub: "自备账号 · 独享正规",
-      badge: "全新上架",
-      price: "168",
-      originalPrice: "¥198",
-      period: "30天质保",
-      prefix: "PH-",
-      stockStatus: "极速秒发",
-      description: "商品简要介绍说明",
-      features: [
-        "官方正规代充，独立独享",
-        "10秒全自动下发激活",
-        "提供 30 天售后质保"
-      ],
-      isPopular: false,
-    });
+  const handleUpdateTicket = async (
+    ticketId: string,
+    status: "pending" | "processing" | "resolved"
+  ) => {
+    try {
+      const resp = await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": authKey.trim(),
+        },
+        body: JSON.stringify({ ticket_id: ticketId, status }),
+      });
+      const d = await resp.json();
+      if (d.success) {
+        showToast("success", "工单状态已更新");
+        fetchTickets();
+      }
+    } catch {
+      showToast("error", "更新工单失败");
+    }
   };
+
+  const awaitingCount = orders.filter((o) => o.payment_status === "awaiting_confirm").length;
+  const pendingTicketCount = tickets.filter((t) => t.status === "pending").length;
+
+  const displayedCatalog = products.filter((p) => {
+    if (catalogFilter === "ENABLED" && !p.enabled) return false;
+    if (catalogFilter === "INSTOCK" && !p.available) return false;
+    if (catalogSearch.trim()) {
+      const q = catalogSearch.trim().toLowerCase();
+      return (
+        p.title.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q) ||
+        p.prefix.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-[#06090e] text-[#f0f7f7] font-mono relative selection:bg-cyan-500/20 selection:text-cyan-200">
@@ -285,9 +398,8 @@ export default function AdminPage() {
       <div className="screen-lines" />
       <div className="hud-grid" />
 
-      {/* 提示条 */}
-      {toastMsg && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+      {toastMsg ? (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 animate-in fade-in duration-200">
           <div
             className={`px-4 py-2.5 rounded-full border text-xs shadow-2xl flex items-center gap-2 backdrop-blur-md ${
               toastMsg.type === "success"
@@ -303,35 +415,34 @@ export default function AdminPage() {
             <span>{toastMsg.text}</span>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* 门禁登录 */}
       {!isAuthenticated ? (
         <div className="min-h-screen flex items-center justify-center p-4 relative z-20">
           <div className="w-full max-w-md glass-card corner-bracket p-8 rounded-lg shadow-2xl">
             <div className="text-center space-y-2 mb-7">
-              <div className="w-12 h-12 mx-auto rounded-lg border border-cyan-400/40 bg-cyan-950/40 flex items-center justify-center text-[var(--holo)] shadow-[0_0_20px_rgba(0,229,216,0.2)]">
+              <div className="w-12 h-12 mx-auto rounded-lg border border-cyan-400/40 bg-cyan-950/40 flex items-center justify-center text-[var(--holo)]">
                 <Lock className="w-6 h-6 animate-pulse" />
               </div>
               <h2 className="text-lg font-bold text-white tracking-wider uppercase">
-                ADMIN CONSOLE GATEWAY
+                QUANTUMLINK V2 · 站长中枢
               </h2>
               <p className="text-xs text-[var(--fg-muted)]">
-                全息站长管理后台 · 请输入管理口令进入
+                连接 Supabase 云端保险柜 · 手机端随时确认收款秒发真卡
               </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="text-xs text-neutral-300 block mb-1.5 font-mono">
-                  安全管理口令 (ADMIN ACCESS KEY)
+                <label className="text-xs text-neutral-300 block mb-1.5">
+                  管理员安全口令 (ADMIN SECRET)
                 </label>
                 <input
                   type="password"
                   value={authKey}
                   onChange={(e) => setAuthKey(e.target.value)}
-                  placeholder="请输入管理员安全密钥..."
-                  className="w-full bg-black/50 border border-white/10 hover:border-white/20 focus:border-[var(--holo)] rounded-md px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all font-mono"
+                  placeholder="请输入管理员口令..."
+                  className="w-full bg-black/50 border border-white/10 focus:border-[var(--holo)] rounded-md px-4 py-3 text-sm text-white focus:outline-none"
                   autoFocus
                   required
                 />
@@ -340,10 +451,10 @@ export default function AdminPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-md border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white text-xs font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,229,216,0.2)]"
+                className="w-full py-3 rounded-md border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white text-xs font-bold tracking-widest uppercase flex items-center justify-center gap-2 cursor-pointer"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin text-[var(--holo)]" /> : <Key className="w-4 h-4 text-[var(--holo)]" />}
-                <span>验证身份并进入后台 (ENTER)</span>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                <span>验证身份进入中枢</span>
               </button>
             </form>
 
@@ -353,36 +464,38 @@ export default function AdminPage() {
                 className="text-xs text-[var(--warm)] hover:underline inline-flex items-center gap-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                返回前台主站
+                <span>返回前台商城</span>
               </a>
             </div>
           </div>
         </div>
       ) : (
-        /* 管理中心主界面 */
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          {/* 顶栏控制 */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
+          {/* 顶栏 */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
             <div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 signal-dot" />
-                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">
-                  QUANTUM LINK · 站长运营中枢
+                <h1 className="text-lg sm:text-2xl font-bold text-white tracking-wider">
+                  QUANTUM LINK V2 · 站长运营中枢
                 </h1>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300">
+                  {cloudVaultActive ? "Supabase 保险柜已挂载" : "本地模式"}
+                </span>
               </div>
-              <p className="text-xs text-[var(--fg-muted)] mt-1">
-                实时管理前台商品、价格、卡密前缀与收银台客服配置，修改后前台秒级生效。
+              <p className="text-xs text-neutral-400 mt-1">
+                苏哲双密钥 (szb_ 拿货 + aisub_ 激活) 全链路打通 · Vercel 重启永不丢数据
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <a
                 href="/"
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-xs text-neutral-300 hover:text-white transition-all inline-flex items-center gap-1.5 bg-white/[0.02]"
+                className="px-4 py-2 rounded-full border border-white/15 hover:border-white/30 text-xs text-neutral-200 inline-flex items-center gap-1.5 bg-white/[0.03]"
               >
-                <span>预览前台效果</span>
+                <span>预览前台</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
 
@@ -390,739 +503,751 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => handleSaveAll()}
                 disabled={saving}
-                className="px-5 py-2 rounded-full border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white text-xs font-bold tracking-wider inline-flex items-center gap-2 shadow-[0_0_15px_rgba(0,229,216,0.25)] transition-all"
+                className="px-5 py-2 rounded-full border border-[var(--holo)] bg-cyan-950/80 hover:bg-cyan-900 text-white text-xs font-bold inline-flex items-center gap-2 shadow-[0_0_15px_rgba(0,229,216,0.25)] cursor-pointer"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-[var(--holo)]" />}
-                <span>保存全部修改 (SAVE)</span>
+                <span>保存全部修改</span>
               </button>
             </div>
           </div>
 
-          {/* 苏哲官方 API 全托管代收与自动化配置 */}
-          <div className="glass-card corner-bracket p-6 rounded-lg shadow-xl space-y-5 border border-cyan-400/30 bg-gradient-to-r from-cyan-950/20 via-[#070d16] to-[#04070c]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <span>苏哲官方 API 全托管代收与自动出码</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-mono">
-                      全托管模式已接入
-                    </span>
-                  </h3>
-                  <span className="text-xs text-neutral-400">
-                    无需自建支付接口与人工囤卡，全托管支付宝收款 + 成本扣除 + 差价佣金自动沉淀 + 秒级发码
-                  </span>
-                </div>
+          {/* 顶部核心经营指标条 */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="p-4 rounded-xl bg-black/50 border border-cyan-500/30 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-neutral-400 block">苏哲代理下单余额 (szb_)</span>
+                <span className="text-lg sm:text-xl font-extrabold text-cyan-300">
+                  ¥{ledger?.suzhe_balance ?? "0.00"}
+                </span>
               </div>
-
-              {/* 佣金看板摘要 */}
-              {ledger && (
-                <div className="flex items-center gap-3 text-xs font-mono">
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-right">
-                    <span className="text-[10px] text-neutral-400 block">累计已结佣金</span>
-                    <span className="text-sm font-bold text-emerald-400">¥{ledger.total_commission || "0.00"}</span>
-                  </div>
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-right">
-                    <span className="text-[10px] text-neutral-400 block">待结算利润</span>
-                    <span className="text-sm font-bold text-amber-400">¥{ledger.pending_settlement || "0.00"}</span>
-                  </div>
-                </div>
-              )}
+              <a
+                href="https://suzhe.ai/agent#wallet"
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 border border-cyan-400/40 text-[10px] font-bold"
+              >
+                去充值 →
+              </a>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-neutral-300 font-bold block">
-                  苏哲 API Key (格式通常为 <code className="text-cyan-300 font-mono">aisub_...</code>)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    value={suzheApiKey}
-                    onChange={(e) => setSuzheApiKey(e.target.value)}
-                    placeholder="请输入你在 suzhe.ai 获取的 API Key..."
-                    className="flex-1 bg-black/50 border border-white/10 rounded px-3 py-2 text-white font-mono focus:border-cyan-400 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleTestPing}
-                    disabled={testingPing || !suzheApiKey.trim()}
-                    className="px-4 py-2 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-400/40 text-cyan-300 font-bold text-xs inline-flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                  >
-                    {testingPing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flame className="w-3.5 h-3.5" />}
-                    <span>测试连通性</span>
-                  </button>
-                </div>
-                <p className="text-[10px] text-neutral-400">
-                  如留空或填 sandbox_mode，系统将自动进入高逼真沙盒模拟演示模式，方便随时体验全流程。
-                </p>
-              </div>
+            <div className="p-4 rounded-xl bg-black/50 border border-amber-500/30">
+              <span className="text-[10px] text-neutral-400 block">待确认收款发卡</span>
+              <span className="text-lg sm:text-xl font-extrabold text-amber-300">
+                {awaitingCount} 笔
+              </span>
+            </div>
 
-              <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1.5">
-                <span className="text-[11px] font-bold text-white block">连通探测状态</span>
-                {pingResult ? (
-                  pingResult.success ? (
-                    <div className="text-[11px] text-emerald-400 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>已连接上游集群 (商户: {pingResult.client_name || "正式客户"})</span>
-                    </div>
-                  ) : (
-                    <div className="text-[11px] text-red-400 flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>{pingResult.error || "连接异常"}</span>
-                    </div>
-                  )
-                ) : (
-                  <div className="text-[11px] text-neutral-400">
-                    点击左侧「测试连通性」可即时检测密钥与上游可用性
-                  </div>
-                )}
-              </div>
+            <div className="p-4 rounded-xl bg-black/50 border border-white/10">
+              <span className="text-[10px] text-neutral-400 block">累计已成交营收</span>
+              <span className="text-lg sm:text-xl font-extrabold text-white">
+                ¥{ledger?.total_revenue ?? "0.00"}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-black/50 border border-emerald-500/30">
+              <span className="text-[10px] text-neutral-400 block">累计净赚毛利</span>
+              <span className="text-lg sm:text-xl font-extrabold text-emerald-400">
+                +¥{ledger?.total_profit ?? "0.00"}
+              </span>
             </div>
           </div>
 
-          {/* 极速售后工单中心 (由 GPTibo 工单引擎启发) */}
-          <div className="glass-card corner-bracket p-6 rounded-lg shadow-xl space-y-4 border border-purple-500/30 bg-gradient-to-r from-purple-950/20 via-[#0a0d16] to-[#04070c]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-300">
-                  <Headphones className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                    <span>极速售后工单处理中心 (TICKETS WORKSPACE)</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 font-mono">
-                      待处理: {tickets.filter((t) => t.status === "pending").length}
+          {/* 四大工作台切换胶囊 */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {[
+              {
+                id: "ORDERS" as AdminTab,
+                icon: ShoppingBag,
+                label: "收款核销与一键发卡",
+                badge: awaitingCount > 0 ? String(awaitingCount) : null,
+              },
+              {
+                id: "CATALOG" as AdminTab,
+                icon: Layers,
+                label: `苏哲商品库同步与改价 (${products.length})`,
+                badge: null,
+              },
+              {
+                id: "TICKETS" as AdminTab,
+                icon: Headphones,
+                label: "售后工单中心",
+                badge: pendingTicketCount > 0 ? String(pendingTicketCount) : null,
+              },
+              {
+                id: "SETTINGS" as AdminTab,
+                icon: Settings,
+                label: "收款二维码与密钥设置",
+                badge: null,
+              },
+            ].map((t) => {
+              const Icon = t.icon;
+              const active = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTab(t.id)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 whitespace-nowrap cursor-pointer border transition-all ${
+                    active
+                      ? "bg-cyan-950 text-white border-cyan-400/70 shadow-lg"
+                      : "bg-white/[0.02] text-neutral-400 hover:text-white border-white/10"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{t.label}</span>
+                  {t.badge ? (
+                    <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px]">
+                      {t.badge}
                     </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ==================== TAB 1: 订单核销与自动调苏哲出卡 ==================== */}
+          {activeTab === "ORDERS" ? (
+            <div className="glass-card corner-bracket p-5 sm:p-6 rounded-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    零售订单核销台（点确认即自动调用 szb_ 扣苏哲余额发真卡）
                   </h3>
-                  <span className="text-xs text-neutral-400">
-                    客户提交的 409 充值报错、卡密核对或 30 天质保申诉，可在此一键复制微信号并流转状态
-                  </span>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    核对微信/支付宝到账后点击【确认收款自动发卡】，买家弹窗会自动秒跳卡密。
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {(["ALL", "awaiting_confirm", "paid", "pending"] as const).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setOrderFilter(st)}
+                      className={`px-3 py-1 rounded-full text-[11px] border cursor-pointer ${
+                        orderFilter === st
+                          ? "bg-cyan-950 text-cyan-200 border-cyan-400/50 font-bold"
+                          : "border-white/10 text-neutral-400"
+                      }`}
+                    >
+                      {st === "ALL"
+                        ? "全部"
+                        : st === "awaiting_confirm"
+                        ? "待核销"
+                        : st === "paid"
+                        ? "已发卡"
+                        : "待付款"}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => fetchOrders()}
+                    className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 cursor-pointer"
+                    title="刷新订单"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
-              {/* 筛选与刷新 */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center p-0.5 rounded-full border border-white/10 bg-black/40 text-[11px]">
+              {orders.length === 0 ? (
+                <div className="text-center py-12 text-neutral-500 text-xs">
+                  暂无订单记录，前台买家下单后将实时同步至此
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {orders
+                    .filter((o) => orderFilter === "ALL" || o.payment_status === orderFilter)
+                    .map((o) => {
+                      const profitYuan = (
+                        ((o.retail_total_fen || 0) - (o.wholesale_total_fen || 0)) /
+                        100
+                      ).toFixed(2);
+                      const isDelivered =
+                        (o.fulfillment_status === "delivered" ||
+                          o.fulfillment_status === "manual_delivered") &&
+                        o.delivered_items?.length > 0;
+
+                      return (
+                        <div
+                          key={o.order_id}
+                          className={`p-4 rounded-xl border space-y-3 ${
+                            o.payment_status === "awaiting_confirm"
+                              ? "border-amber-400/60 bg-amber-950/15"
+                              : "border-white/10 bg-black/50"
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-cyan-300">{o.order_id}</span>
+                              <span className="text-white font-bold">
+                                {o.product_name} {o.variant ? `[${o.variant}]` : ""} × {o.quantity}
+                              </span>
+                              <span className="text-neutral-500 text-[10px]">
+                                {new Date(o.created_at).toLocaleString("zh-CN", { hour12: false })}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-amber-300 font-bold">
+                                实收 ¥{(o.retail_total_fen / 100).toFixed(2)}
+                              </span>
+                              <span className="text-neutral-400 text-[11px]">
+                                (成本 ¥{(o.wholesale_total_fen / 100).toFixed(2)} · 净赚 +¥{profitYuan})
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/[0.02] p-2.5 rounded-lg border border-white/5">
+                            <div>
+                              <span className="text-neutral-500">买家预留联系: </span>
+                              <span className="text-cyan-200 font-bold">{o.buyer_contact || "未填写"}</span>
+                            </div>
+                            <div>
+                              <span className="text-neutral-500">付款备注/状态: </span>
+                              <span className="text-amber-200">
+                                {o.payer_note || o.payment_status}
+                              </span>
+                            </div>
+                          </div>
+
+                          {o.error_detail ? (
+                            <div className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-200 text-[11px]">
+                              {o.error_detail}
+                            </div>
+                          ) : null}
+
+                          {isDelivered ? (
+                            <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[11px] flex items-center justify-between gap-2">
+                              <span className="text-emerald-300 truncate">
+                                ✅ 已发卡:{" "}
+                                {o.delivered_items
+                                  .map((i) => i.copy_text || i.value)
+                                  .join(" | ")}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopy(
+                                    o.delivered_items.map((i) => i.copy_text || i.value).join("\n"),
+                                    `ord_${o.order_id}`
+                                  )
+                                }
+                                className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-200 flex-shrink-0"
+                              >
+                                {copiedKey === `ord_${o.order_id}` ? "已复制" : "复制交付物"}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                disabled={fulfillingOrderId === o.order_id}
+                                onClick={() =>
+                                  handleFulfillOrder(o.order_id, "confirm_and_fulfill_suzhe")
+                                }
+                                className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              >
+                                {fulfillingOrderId === o.order_id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Send className="w-3.5 h-3.5" />
+                                )}
+                                <span>确认已收款 · 自动调苏哲秒发真卡</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setManualDeliverOpenId(
+                                    manualDeliverOpenId === o.order_id ? null : o.order_id
+                                  )
+                                }
+                                className="px-3 py-2 rounded-lg border border-cyan-500/40 bg-cyan-950/40 text-cyan-200 text-xs cursor-pointer"
+                              >
+                                手动粘贴卡密发货
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleFulfillOrder(o.order_id, "close")}
+                                className="px-3 py-2 rounded-lg border border-white/10 text-neutral-400 hover:text-rose-300 text-xs ml-auto cursor-pointer"
+                              >
+                                关闭未付单
+                              </button>
+                            </div>
+                          )}
+
+                          {manualDeliverOpenId === o.order_id ? (
+                            <div className="pt-2 space-y-2 border-t border-white/10">
+                              <textarea
+                                rows={2}
+                                value={manualDeliverText}
+                                onChange={(e) => setManualDeliverText(e.target.value)}
+                                placeholder="粘贴您要手动发给买家的卡密或账号信息（多张可换行）..."
+                                className="w-full bg-black/70 border border-white/15 rounded-lg p-2.5 text-xs text-white focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleFulfillOrder(o.order_id, "manual_deliver")}
+                                className="px-4 py-1.5 rounded-lg bg-amber-400 text-black font-bold text-xs cursor-pointer"
+                              >
+                                立即发送给买家
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {/* ==================== TAB 2: 苏哲 43 款商品同步与改价台 ==================== */}
+          {activeTab === "CATALOG" ? (
+            <div className="glass-card corner-bracket p-5 sm:p-6 rounded-xl space-y-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    苏哲全量供应链实时同步与改价中心（共 {products.length} 款）
+                  </h3>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    勾选开关即可上下架任意苏哲商品，调整零售价后点击右上角【保存全部修改】实时同步前台。
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await fetchStoreAdmin(authKey.trim(), true);
+                    showToast("success", "已从苏哲实时同步最新库存与代理成本价！");
+                  }}
+                  className="px-3.5 py-2 rounded-lg border border-cyan-400/40 bg-cyan-950/40 text-cyan-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer self-start"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>强制刷新苏哲库存</span>
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between text-xs">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {(["ENABLED", "INSTOCK", "ALL"] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setCatalogFilter(f)}
+                      className={`px-3 py-1.5 rounded-full border cursor-pointer ${
+                        catalogFilter === f
+                          ? "bg-cyan-950 text-cyan-200 border-cyan-400/50 font-bold"
+                          : "border-white/10 text-neutral-400"
+                      }`}
+                    >
+                      {f === "ENABLED"
+                        ? `当前上架 (${products.filter((p) => p.enabled).length})`
+                        : f === "INSTOCK"
+                        ? `苏哲有货 (${products.filter((p) => p.available).length})`
+                        : `全部商品 (${products.length})`}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    placeholder="搜索商品名或代码..."
+                    className="w-full bg-black/50 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                {displayedCatalog.map((p) => {
+                  const costFen = p.wholesalePriceFen ?? 0;
+                  const retailFen = p.retailPriceFen ?? Math.round(parseFloat(p.price) * 100);
+                  const marginFen = retailFen - costFen;
+                  const isLoss = retailFen <= costFen;
+
+                  return (
+                    <div
+                      key={p.id}
+                      className={`p-3.5 rounded-xl border grid grid-cols-1 lg:grid-cols-12 gap-3 items-center text-xs ${
+                        p.enabled
+                          ? "border-white/15 bg-black/50"
+                          : "border-white/5 bg-black/25 opacity-65"
+                      }`}
+                    >
+                      {/* 上架开关与商品标题 */}
+                      <div className="lg:col-span-5 flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(p.enabled)}
+                          onChange={(e) =>
+                            updateProductField(p.id, { enabled: e.target.checked })
+                          }
+                          className="w-4 h-4 accent-cyan-400 cursor-pointer"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <input
+                            type="text"
+                            value={p.title}
+                            onChange={(e) =>
+                              updateProductField(p.id, { title: e.target.value })
+                            }
+                            className="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-cyan-400 text-white font-bold focus:outline-none py-0.5"
+                          />
+                          <div className="text-[10px] text-neutral-400 flex items-center gap-2 mt-0.5">
+                            <span>代码: {p.id}</span>
+                            <span>·</span>
+                            <span className={p.available ? "text-emerald-400" : "text-rose-400"}>
+                              库存: {p.stock ?? 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 成本价 */}
+                      <div className="lg:col-span-2 text-neutral-300">
+                        <span className="text-[10px] text-neutral-500 block">苏哲拿货价</span>
+                        <span className="font-bold">¥{(costFen / 100).toFixed(2)}</span>
+                      </div>
+
+                      {/* 零售价编辑 */}
+                      <div className="lg:col-span-3">
+                        <span className="text-[10px] text-neutral-500 block">本站零售价 (¥)</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={(retailFen / 100).toFixed(2)}
+                          onChange={(e) => {
+                            const val = Math.max(0, Math.round(parseFloat(e.target.value || "0") * 100));
+                            updateProductField(p.id, { retailPriceFen: val });
+                          }}
+                          className="w-28 bg-black/70 border border-white/15 focus:border-cyan-400 rounded px-2.5 py-1 text-white font-bold focus:outline-none"
+                        />
+                      </div>
+
+                      {/* 单件毛利与爆款星标 */}
+                      <div className="lg:col-span-2 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-neutral-500 block">单件净利</span>
+                          <span
+                            className={`font-bold ${
+                              isLoss ? "text-rose-400" : "text-emerald-400"
+                            }`}
+                          >
+                            {marginFen >= 0 ? "+" : ""}¥{(marginFen / 100).toFixed(2)}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateProductField(p.id, { isPopular: !p.isPopular })
+                          }
+                          className={`p-1.5 rounded-lg border cursor-pointer ${
+                            p.isPopular
+                              ? "border-amber-400/60 bg-amber-500/20 text-amber-300"
+                              : "border-white/10 text-neutral-500"
+                          }`}
+                          title="设为热门主推"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {/* ==================== TAB 3: 售后工单中心 ==================== */}
+          {activeTab === "TICKETS" ? (
+            <div className="glass-card corner-bracket p-5 sm:p-6 rounded-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  售后工单处理中心（数据持久存储于 Supabase）
+                </h3>
+                <div className="flex items-center gap-2 text-xs">
                   {(["ALL", "pending", "resolved"] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
                       onClick={() => setTicketFilter(tab)}
-                      className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-full border cursor-pointer ${
                         ticketFilter === tab
-                          ? "bg-purple-950 text-purple-200 border border-purple-500/50 font-bold"
-                          : "text-neutral-400 hover:text-white"
+                          ? "bg-purple-950 text-purple-200 border-purple-400/50 font-bold"
+                          : "border-white/10 text-neutral-400"
                       }`}
                     >
-                      {tab === "ALL" ? `全部 (${tickets.length})` : tab === "pending" ? "待处理" : "已解决"}
+                      {tab === "ALL" ? "全部" : tab === "pending" ? "待处理" : "已解决"}
                     </button>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => fetchTickets()}
-                  className="p-1.5 rounded-full bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition-colors"
-                  title="刷新工单"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
               </div>
-            </div>
 
-            {/* 工单列表 */}
-            {tickets.length === 0 ? (
-              <div className="text-center py-6 text-neutral-500 text-xs font-mono">
-                暂无售后工单记录，系统运行平稳
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {tickets
-                  .filter((t) => {
-                    if (ticketFilter === "pending") return t.status === "pending" || t.status === "processing";
-                    if (ticketFilter === "resolved") return t.status === "resolved";
-                    return true;
-                  })
-                  .map((t) => (
-                    <div
-                      key={t.id}
-                      className="p-4 rounded-xl border border-white/[0.08] bg-black/50 space-y-2.5 transition-all hover:border-purple-500/30"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-cyan-300 font-mono">{t.id}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-300">
-                            {t.category_name}
-                          </span>
-                          <span className="text-neutral-500 text-[10px]">{t.created_at}</span>
+              {tickets.length === 0 ? (
+                <div className="text-center py-10 text-neutral-500 text-xs">暂无售后工单</div>
+              ) : (
+                <div className="space-y-3">
+                  {tickets
+                    .filter((t) =>
+                      ticketFilter === "ALL"
+                        ? true
+                        : ticketFilter === "pending"
+                        ? t.status !== "resolved"
+                        : t.status === "resolved"
+                    )
+                    .map((t) => {
+                      const tid = t.ticket_id || t.id;
+                      return (
+                        <div
+                          key={tid}
+                          className="p-4 rounded-xl border border-white/10 bg-black/50 space-y-2.5 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-cyan-300">{tid}</span>
+                              <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[10px]">
+                                {t.category_name}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-amber-300">{t.status}</span>
+                          </div>
+                          <div className="text-[11px] text-neutral-300">
+                            关联单号/任务: <strong className="text-white">{t.order_id}</strong> · 客户联系:{" "}
+                            <strong className="text-cyan-300">{t.contact}</strong>{" "}
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(t.contact, tid)}
+                              className="text-purple-300 underline ml-1"
+                            >
+                              {copiedKey === tid ? <Check className="w-3 h-3 inline" /> : "复制"}
+                            </button>
+                          </div>
+                          <p className="p-2.5 rounded bg-black/40 border border-white/5 text-neutral-200 whitespace-pre-wrap">
+                            {t.description}
+                          </p>
+                          {t.status !== "resolved" ? (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateTicket(tid, "resolved")}
+                                className="px-3 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] cursor-pointer"
+                              >
+                                标记已解决
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                              t.status === "resolved"
-                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                : t.status === "processing"
-                                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                                : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            }`}
-                          >
-                            {t.status === "resolved" ? "● 已解决" : t.status === "processing" ? "● 处理中" : "● 待处理"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-white/[0.02] p-2 rounded-lg border border-white/5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-neutral-500">关联单号:</span>
-                          <span className="text-white font-mono break-all">{t.order_id}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-neutral-500">客户联系方式:</span>
-                          <span className="text-cyan-200 font-bold font-mono">{t.contact}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopy(t.contact, `ticket_${t.id}`)}
-                            className="text-[10px] text-purple-300 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            {copiedKey === `ticket_${t.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedKey === `ticket_${t.id}` ? "已复制" : "复制"}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="text-[11px] text-neutral-300 leading-relaxed bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span className="text-neutral-500 block text-[10px] mb-0.5">问题描述:</span>
-                        <p className="whitespace-pre-wrap">{t.description}</p>
-                      </div>
-
-                      {/* 处理操作按钮 */}
-                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-white/[0.04]">
-                        {t.status !== "processing" && t.status !== "resolved" && (
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateTicket(t.id, "processing")}
-                            className="px-3 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] transition-all cursor-pointer"
-                          >
-                            标记为处理中
-                          </button>
-                        )}
-                        {t.status !== "resolved" && (
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateTicket(t.id, "resolved")}
-                            className="px-3 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition-all cursor-pointer"
-                          >
-                            标记为已解决
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-
-          {/* 收银台与客服配置 */}
-          <div className="glass-card corner-bracket p-6 rounded-lg shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-white border-b border-white/[0.08] pb-3">
-              <Settings className="w-4 h-4 text-[var(--warm)]" />
-              <span>收银台与客服联系方式配置</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div>
-                <label className="text-neutral-400 block mb-1.5">客服微信号 (前台一键复制)</label>
-                <input
-                  type="text"
-                  value={contact.wechat}
-                  onChange={(e) => setContact({ ...contact, wechat: e.target.value })}
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-neutral-400 block mb-1.5">收款码提示文字</label>
-                <input
-                  type="text"
-                  value={contact.qrNote}
-                  onChange={(e) => setContact({ ...contact, qrNote: e.target.value })}
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-neutral-400 block mb-1.5">支付网关手续费率 (%)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={contact.handlingFeePercent ?? 2.0}
-                  onChange={(e) => setContact({ ...contact, handlingFeePercent: parseFloat(e.target.value) || 0 })}
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-neutral-400 block mb-1.5">微信交流群名称</label>
-                <input
-                  type="text"
-                  value={contact.wechatGroupTitle || ""}
-                  onChange={(e) => setContact({ ...contact, wechatGroupTitle: e.target.value })}
-                  placeholder="例如：Finn 极客 AI 交流群"
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-neutral-400 block mb-1.5">QQ 交流群号</label>
-                <input
-                  type="text"
-                  value={contact.qqGroup || ""}
-                  onChange={(e) => setContact({ ...contact, qqGroup: e.target.value })}
-                  placeholder="例如：837192045"
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-neutral-400 block mb-1.5">Telegram 官方频道链接</label>
-                <input
-                  type="text"
-                  value={contact.telegramChannel || ""}
-                  onChange={(e) => setContact({ ...contact, telegramChannel: e.target.value })}
-                  placeholder="https://t.me/..."
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <label className="text-neutral-400 block mb-1.5">商城顶部全局公告说明</label>
-                <input
-                  type="text"
-                  value={contact.noticeText}
-                  onChange={(e) => setContact({ ...contact, noticeText: e.target.value })}
-                  className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white focus:border-[var(--holo)] focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 二维码图片上传与预览专区 */}
-            <div className="pt-5 border-t border-white/[0.08] space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-white">
-                <QrCode className="w-4 h-4 text-cyan-400" />
-                <span>二维码图片设置（本地上传或直链）</span>
-                <span className="text-[10px] text-neutral-400 font-normal">
-                  - 上传后前台收银台与底部弹窗将真实展示该二维码
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* 1. 客服微信 / 收款二维码 */}
-                <div className="p-4 border border-white/10 bg-black/40 rounded-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-white text-xs block">① 客服微信 / 收款二维码</span>
-                      <span className="text-[10px] text-neutral-400">展示于：前台收银台扫码、底部客服微信弹窗</span>
-                    </div>
-                    {contact.qrCodeImage && (
-                      <button
-                        type="button"
-                        onClick={() => setContact({ ...contact, qrCodeImage: "" })}
-                        className="text-red-400 hover:text-red-300 text-[10px] inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>移除图片</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    {/* 图片预览 */}
-                    <div className="w-24 h-24 flex-shrink-0 bg-white rounded border border-neutral-300 flex items-center justify-center overflow-hidden p-1 shadow-inner relative">
-                      {contact.qrCodeImage ? (
-                        <img
-                          src={contact.qrCodeImage}
-                          alt="客服二维码预览"
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <div className="text-center p-1 text-neutral-400">
-                          <QrCode className="w-7 h-7 mx-auto mb-1 text-neutral-300" />
-                          <span className="text-[8px] block text-neutral-500">默认图标</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 上传操作 */}
-                    <div className="flex-1 space-y-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="upload-qr-customer"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) handleUploadQr("qrCodeImage", f);
-                        }}
-                      />
-                      <label
-                        htmlFor="upload-qr-customer"
-                        className="px-3 py-2 border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900 text-cyan-200 rounded text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors w-full"
-                      >
-                        {uploadingField === "qrCodeImage" ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="w-3.5 h-3.5" />
-                        )}
-                        <span>{uploadingField === "qrCodeImage" ? "正在上传..." : "选择本地收款码图片上传"}</span>
-                      </label>
-
-                      <div className="space-y-0.5">
-                        <span className="text-[10px] text-neutral-400 block">或粘贴图片网络直链:</span>
-                        <input
-                          type="text"
-                          value={contact.qrCodeImage || ""}
-                          onChange={(e) => setContact({ ...contact, qrCodeImage: e.target.value })}
-                          placeholder="例如: https://... 或 /uploads/..."
-                          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:border-[var(--holo)] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                      );
+                    })}
                 </div>
-
-                {/* 2. 微信交流群二维码 */}
-                <div className="p-4 border border-white/10 bg-black/40 rounded-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-white text-xs block">② 微信交流群二维码</span>
-                      <span className="text-[10px] text-neutral-400">展示于：前台底部“微信交流群”扫码进群弹窗</span>
-                    </div>
-                    {contact.wechatGroupQr && (
-                      <button
-                        type="button"
-                        onClick={() => setContact({ ...contact, wechatGroupQr: "" })}
-                        className="text-red-400 hover:text-red-300 text-[10px] inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>移除图片</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    {/* 图片预览 */}
-                    <div className="w-24 h-24 flex-shrink-0 bg-white rounded border border-neutral-300 flex items-center justify-center overflow-hidden p-1 shadow-inner relative">
-                      {contact.wechatGroupQr ? (
-                        <img
-                          src={contact.wechatGroupQr}
-                          alt="微信群二维码预览"
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <div className="text-center p-1 text-neutral-400">
-                          <QrCode className="w-7 h-7 mx-auto mb-1 text-neutral-300" />
-                          <span className="text-[8px] block text-neutral-500">默认图标</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 上传操作 */}
-                    <div className="flex-1 space-y-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="upload-qr-group"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) handleUploadQr("wechatGroupQr", f);
-                        }}
-                      />
-                      <label
-                        htmlFor="upload-qr-group"
-                        className="px-3 py-2 border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900 text-emerald-200 rounded text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors w-full"
-                      >
-                        {uploadingField === "wechatGroupQr" ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="w-3.5 h-3.5" />
-                        )}
-                        <span>{uploadingField === "wechatGroupQr" ? "正在上传..." : "选择本地群二维码图片上传"}</span>
-                      </label>
-
-                      <div className="space-y-0.5">
-                        <span className="text-[10px] text-neutral-400 block">或粘贴图片网络直链:</span>
-                        <input
-                          type="text"
-                          value={contact.wechatGroupQr || ""}
-                          onChange={(e) => setContact({ ...contact, wechatGroupQr: e.target.value })}
-                          placeholder="例如: https://... 或 /uploads/..."
-                          className="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[11px] text-white focus:border-emerald-400 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
+          ) : null}
 
-          {/* 商品列表 */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-bold text-white tracking-wider">
-                  在售商品矩阵 ({products.length} 款)
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleOpenAddProduct}
-                className="px-4 py-2 rounded-full border border-amber-500/40 bg-amber-950/30 hover:bg-amber-900/50 text-[var(--warm)] text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(255,184,133,0.15)]"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ 上架新套餐</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((prod) => (
-                <div
-                  key={prod.id}
-                  className="glass-card corner-bracket p-6 rounded-lg flex flex-col justify-between space-y-4 hover:border-[var(--line-strong)] transition-all shadow-lg"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div>
-                        <h3 className="text-base font-bold text-white">{prod.title}</h3>
-                        <span className="text-xs text-[var(--fg-muted)] block mt-0.5">{prod.sub}</span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded border border-[var(--warm)]/40 bg-amber-950/30 text-[var(--warm)]">
-                        {prod.badge}
-                      </span>
-                    </div>
-
-                    <div className="flex items-baseline gap-2 my-4 text-xs">
-                      <span className="text-3xl font-extrabold text-white">¥ {prod.price}</span>
-                      {prod.originalPrice && (
-                        <span className="line-through text-neutral-500 text-xs">{prod.originalPrice}</span>
-                      )}
-                      <span className="text-neutral-400 ml-auto">/ {prod.period}</span>
-                    </div>
-
-                    <p className="text-[11px] text-neutral-400 line-clamp-2 leading-relaxed mb-4">
-                      {prod.description}
-                    </p>
-
-                    <div className="p-3 rounded border border-white/[0.06] bg-black/40 text-[11px] space-y-1.5">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-500">卡密前缀:</span>
-                        <span className="text-[var(--holo)] font-bold">{prod.prefix}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-500">库存状态:</span>
-                        <span className="text-emerald-400 font-medium">● {prod.stockStatus}</span>
-                      </div>
-                    </div>
+          {/* ==================== TAB 4: 双密钥检测与永久收款二维码配置 ==================== */}
+          {activeTab === "SETTINGS" ? (
+            <div className="space-y-6">
+              {/* 苏哲双密钥状态 */}
+              <div className="glass-card corner-bracket p-6 rounded-xl space-y-4 border border-cyan-500/30">
+                <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm font-bold text-white">苏哲 AI 双密钥体系连通检测</span>
                   </div>
-
-                  <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsNewProduct(false);
-                        setEditingProduct({ ...prod });
-                      }}
-                      className="px-3 py-1.5 rounded border border-cyan-400/40 text-cyan-300 hover:bg-cyan-950/40 transition-colors inline-flex items-center gap-1.5 text-xs"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" /> 编辑商品
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProduct(prod.id)}
-                      className="text-rose-400 hover:text-rose-300 inline-flex items-center gap-1 text-xs transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> 下架删除
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 编辑弹窗 */}
-          {editingProduct && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-              <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto glass-card corner-bracket p-7 rounded-lg shadow-2xl space-y-5 text-white">
-                <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                  <h3 className="text-base font-bold text-white tracking-wider">
-                    {isNewProduct ? "上架新 AI 套餐" : "编辑套餐属性"}
-                  </h3>
                   <button
-                    onClick={() => setEditingProduct(null)}
-                    className="text-neutral-400 hover:text-white"
+                    type="button"
+                    onClick={handleTestPing}
+                    disabled={testingPing}
+                    className="px-4 py-1.5 rounded-lg bg-cyan-950 border border-cyan-400/40 text-cyan-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <X className="w-5 h-5" />
+                    {testingPing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Flame className="w-3.5 h-3.5" />}
+                    <span>一键检测双密钥与余额</span>
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveProductModal} className="space-y-4 text-xs">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-neutral-300 block mb-1">商品标题 (Title)</label>
-                      <input
-                        type="text"
-                        value={editingProduct.title}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-neutral-300 block mb-1">副标题 (Sub)</label>
-                      <input
-                        type="text"
-                        value={editingProduct.sub}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, sub: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
-                        required
-                      />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="text-neutral-300 block mb-1">
+                      激活密钥 (aisub_...) {hasEnvActivationKey ? "· [环境变量已安全注入]" : ""}
+                    </label>
+                    <input
+                      type="password"
+                      value={suzheApiKey}
+                      onChange={(e) => setSuzheApiKey(e.target.value)}
+                      placeholder={hasEnvActivationKey ? "默认使用服务端环境变量 SUZHE_API_KEY" : "输入 aisub_..."}
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
                   </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-neutral-300 block mb-1">现售价 (¥)</label>
-                      <input
-                        type="text"
-                        value={editingProduct.price}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-[var(--warm)] font-bold text-sm"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-neutral-300 block mb-1">划线原价 (¥)</label>
-                      <input
-                        type="text"
-                        value={editingProduct.originalPrice || ""}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, originalPrice: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-neutral-400"
-                        placeholder="例如: ¥188"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-neutral-300 block mb-1">有效质保周期</label>
-                      <input
-                        type="text"
-                        value={editingProduct.period}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, period: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
-                        placeholder="30天质保"
-                      />
-                    </div>
+                  <div>
+                    <label className="text-neutral-300 block mb-1">
+                      代理下单密钥 (szb_...) {hasEnvOrderKey ? "· [环境变量已安全注入]" : ""}
+                    </label>
+                    <input
+                      type="password"
+                      value={suzheOrderKey}
+                      onChange={(e) => setSuzheOrderKey(e.target.value)}
+                      placeholder={hasEnvOrderKey ? "默认使用服务端环境变量 SUZHE_ORDER_KEY" : "输入 szb_..."}
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-neutral-300 block mb-1">卡密前缀 (Prefix)</label>
+                {pingResult ? (
+                  <div className="p-3 rounded-lg bg-black/50 border border-white/10 text-xs text-emerald-300">
+                    激活网关：{pingResult.activation?.success ? `✅ 正常 (${pingResult.client_name})` : "❌ 异常"} ｜ 下单钱包：
+                    {pingResult.orderWallet?.success ? `✅ 正常 (实时余额 ¥${pingResult.balance})` : `❌ ${pingResult.orderWallet?.error || "异常"}`}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* 收款码永久云存储上传 */}
+              <div className="glass-card corner-bracket p-6 rounded-xl space-y-5">
+                <div className="flex items-center gap-2 text-sm font-bold text-white border-b border-white/[0.08] pb-3">
+                  <QrCode className="w-4 h-4 text-cyan-400" />
+                  <span>个人收款码与社群二维码（直存 Supabase 云端保险柜，Vercel 永不丢失）</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {(
+                    [
+                      { field: "qrCodeImage", title: "① 微信个人收款码", desc: "买家结算默认展示" },
+                      { field: "alipayQrImage", title: "② 支付宝收款码", desc: "支持双码自由切换" },
+                      { field: "wechatGroupQr", title: "③ 微信交流群二维码", desc: "页脚社群引流展示" },
+                    ] as const
+                  ).map((slot) => (
+                    <div
+                      key={slot.field}
+                      className="p-4 rounded-xl border border-white/10 bg-black/40 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-white block">{slot.title}</span>
+                          <span className="text-[10px] text-neutral-400">{slot.desc}</span>
+                        </div>
+                        {contact[slot.field] ? (
+                          <button
+                            type="button"
+                            onClick={() => setContact({ ...contact, [slot.field]: "" })}
+                            className="text-rose-400 text-[10px] inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" /> 移除
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="w-28 h-28 mx-auto bg-white rounded-xl p-1.5 flex items-center justify-center overflow-hidden">
+                        {contact[slot.field] ? (
+                          <img
+                            src={contact[slot.field]}
+                            alt={slot.title}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <QrCode className="w-8 h-8 text-neutral-300" />
+                        )}
+                      </div>
+
                       <input
-                        type="text"
-                        value={editingProduct.prefix}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, prefix: e.target.value.toUpperCase() })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-[var(--holo)] font-bold"
-                        placeholder="PH-"
-                        required
+                        type="file"
+                        accept="image/*"
+                        id={`upload-${slot.field}`}
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadQr(slot.field, f);
+                        }}
                       />
-                    </div>
-                    <div>
-                      <label className="text-neutral-300 block mb-1">热卖徽章</label>
-                      <input
-                        type="text"
-                        value={editingProduct.badge}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, badge: e.target.value })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
-                        placeholder="销量冠军"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-neutral-300 block mb-1">库存状态标签</label>
-                      <select
-                        value={editingProduct.stockStatus}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, stockStatus: e.target.value as any })}
-                        className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                      <label
+                        htmlFor={`upload-${slot.field}`}
+                        className="w-full py-2 rounded-lg border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900 text-cyan-200 font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <option value="极速秒发">极速秒发</option>
-                        <option value="充足现货">充足现货</option>
-                        <option value="库存紧张">库存紧张</option>
-                      </select>
+                        {uploadingField === slot.field ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        <span>上传图片入库</span>
+                      </label>
                     </div>
-                  </div>
+                  ))}
+                </div>
 
+                {/* 联系方式与沙盒开关 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-3 border-t border-white/[0.08]">
                   <div>
-                    <label className="text-neutral-300 block mb-1">商品简述</label>
-                    <textarea
-                      rows={2}
-                      value={editingProduct.description}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                      className="w-full bg-black/50 border border-white/10 rounded p-2.5 text-white"
+                    <label className="text-neutral-400 block mb-1">客服微信号</label>
+                    <input
+                      type="text"
+                      value={contact.wechat || ""}
+                      onChange={(e) => setContact({ ...contact, wechat: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                     />
                   </div>
-
-                  <div>
-                    <label className="text-neutral-300 block mb-1">特权清单 (每行一条特权)</label>
-                    <textarea
-                      rows={4}
-                      value={editingProduct.features.join("\n")}
-                      onChange={(e) =>
-                        setEditingProduct({
-                          ...editingProduct,
-                          features: e.target.value.split("\n").filter((f) => f.trim().length > 0),
-                        })
-                      }
-                      className="w-full bg-black/50 border border-white/10 rounded p-2.5 text-white font-mono"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/10">
+                    <div>
+                      <span className="text-white font-bold block">前台沙盒模拟出码按钮</span>
+                      <span className="text-[10px] text-neutral-400">
+                        正式对外卖卡时建议保持关闭
+                      </span>
+                    </div>
                     <input
                       type="checkbox"
-                      id="isPopular"
-                      checked={editingProduct.isPopular || false}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, isPopular: e.target.checked })}
-                      className="accent-[var(--holo)] rounded"
+                      checked={sandboxDemoEnabled}
+                      onChange={(e) => setSandboxDemoEnabled(e.target.checked)}
+                      className="w-4 h-4 accent-amber-400 cursor-pointer"
                     />
-                    <label htmlFor="isPopular" className="text-neutral-300">
-                      设为前台重点推荐 (带冠军流光边框)
-                    </label>
                   </div>
+                  <div className="md:col-span-2">
+                    <label className="text-neutral-400 block mb-1">商城顶部公告栏</label>
+                    <input
+                      type="text"
+                      value={contact.noticeText || ""}
+                      onChange={(e) => setContact({ ...contact, noticeText: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
 
-                  <div className="pt-4 border-t border-white/[0.08] flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditingProduct(null)}
-                      className="px-4 py-2 rounded border border-neutral-700 text-neutral-400 hover:text-white"
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2 rounded border border-[var(--holo)] bg-cyan-950/70 hover:bg-cyan-900 text-white font-bold"
-                    >
-                      保存并应用
-                    </button>
+                {/* 预留彩虹易支付自动回调配置 */}
+                <div className="pt-4 border-t border-white/[0.08] space-y-3 text-xs">
+                  <div className="flex items-center gap-2 text-neutral-300 font-bold">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>预留：第三方易支付自动回调秒发接口 (/api/pay/epay/notify)</span>
                   </div>
-                </form>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      value={epay.url || ""}
+                      onChange={(e) => setEpay({ ...epay, url: e.target.value })}
+                      placeholder="易支付网关 URL (后续开通再填)"
+                      className="bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
+                    <input
+                      type="text"
+                      value={epay.pid || ""}
+                      onChange={(e) => setEpay({ ...epay, pid: e.target.value })}
+                      placeholder="商户 PID"
+                      className="bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
+                    <input
+                      type="password"
+                      value={epay.key || ""}
+                      onChange={(e) => setEpay({ ...epay, key: e.target.value })}
+                      placeholder="商户通信密钥 KEY"
+                      className="bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

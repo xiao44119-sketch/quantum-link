@@ -55,13 +55,13 @@ export const LiveActivityFeed: React.FC = () => {
         </span>
         <div className="flex items-center gap-4 text-neutral-300">
           <span className="text-emerald-400 font-medium">
-            ● 8秒前 [尾号 8812] Plus 官方下发完毕
+            ● 8秒前 [PLS-****8812] ChatGPT Plus 下发完毕
           </span>
           <span className="hidden lg:inline text-neutral-400">
-            | 26秒前 [尾号 9104] Claude Pro 专线完成
+            | 21秒前 [GSTU-****9104] Gemini 学生认证通过
           </span>
           <span className="hidden xl:inline text-neutral-400">
-            | 1分钟前 [尾号 0321] Pro 20x 满血激活
+            | 1分钟前 [P10X-****0321] Pro 10x 无损直升完成
           </span>
         </div>
       </div>

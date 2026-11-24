@@ -83,7 +83,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateTab }) => {
               </div>
 
               <p className="text-neutral-400 text-xs leading-relaxed text-justify">
-                由 <strong>骁清 Finn</strong> 架构并维护的独立 AI 会员订阅分发网络。为创作者、工程师与科研团队提供 ChatGPT Plus、ChatGPT Pro、Claude Pro 等海外主流算力通道的高速自动化交付与长效售后质保。
+                由 <strong>骁清 Finn</strong> 架构并维护的独立 AI 会员订阅分发网络。为创作者、工程师与科研团队提供 ChatGPT Plus、Pro 10x/20x/50x、Grok、Gemini 学生认证、Codex 接码与 Telegram 大会员等官方算力通道的高速自动化交付与云端存证保障。
               </p>
 
               <div className="p-3 border border-white/5 bg-white/[0.02] rounded text-[11px] text-neutral-400 space-y-1.5">

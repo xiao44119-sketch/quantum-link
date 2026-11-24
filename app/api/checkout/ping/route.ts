@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pingSuZheApi } from "@/lib/suzhe-checkout-service";
+import { verifyAdminSecret } from "@/lib/cloud-vault";
+import { pingActivationGateway } from "@/lib/suzhe-activation-router";
+import { getSuZheOrderBalance } from "@/lib/suzhe-order-service";
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const result = await pingSuZheApi(body.apiKey);
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  const isAdmin = await verifyAdminSecret(req.headers.get("x-admin-secret"));
+  if (!isAdmin) {
+    return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
   }
-}
 
-export async function GET() {
-  try {
-    const result = await pingSuZheApi();
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
-  }
+  const body = await req.json().catch(() => ({}));
+  const [actPing, orderBal] = await Promise.all([
+    pingActivationGateway(body.apiKey || undefined),
+    getSuZheOrderBalance(body.orderKey || undefined),
+  ]);
+
+  return NextResponse.json({
+    success: Boolean(actPing.success || orderBal.success),
+    activation: actPing,
+    orderWallet: orderBal,
+    client_name: actPing.client_name || "苏哲授权代理",
+    balance: orderBal.balance ?? null,
+    error: !actPing.success && !orderBal.success ? actPing.error || orderBal.error : undefined,
+  });
 }
