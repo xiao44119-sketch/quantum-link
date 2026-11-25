@@ -5,6 +5,7 @@ import {
   verifyAdminSecret,
 } from "@/lib/cloud-vault";
 import { fulfillOrderViaSuZhe } from "@/lib/suzhe-order-service";
+import { sendOrderAwaitingConfirmPush } from "@/lib/order-notify";
 
 export async function GET(
   _req: NextRequest,
@@ -48,11 +49,21 @@ export async function POST(
     return NextResponse.json({ success: true, order });
   }
 
+  const shouldSendPush =
+    order.payment_status !== "awaiting_confirm" ||
+    Boolean(payerNote && payerNote !== order.payer_note);
+
   const updated = await updateVaultOrder(orderId, {
     payment_status: "awaiting_confirm",
     buyer_contact: buyerContact || null,
     payer_note: payerNote || "买家已点击完成扫码付款",
   });
+
+  if (shouldSendPush && updated) {
+    await sendOrderAwaitingConfirmPush(updated, req.nextUrl.origin).catch((err) => {
+      console.error("[MobileNotify] Push failed:", err);
+    });
+  }
 
   return NextResponse.json({
     success: true,

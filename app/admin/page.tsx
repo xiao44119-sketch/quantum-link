@@ -65,6 +65,14 @@ export default function AdminPage() {
     noticeText: "",
   });
   const [epay, setEpay] = useState<any>({ url: "", pid: "", key: "" });
+  const [notify, setNotify] = useState<any>({
+    enabled: true,
+    pushplusToken: "",
+    barkKey: "",
+    serverChanKey: "",
+    webhookUrl: "",
+  });
+  const [testingNotify, setTestingNotify] = useState(false);
   const [suzheApiKey, setSuzheApiKey] = useState("");
   const [suzheOrderKey, setSuzheOrderKey] = useState("");
   const [hasEnvActivationKey, setHasEnvActivationKey] = useState(false);
@@ -158,6 +166,7 @@ export default function AdminPage() {
       setMinProfitFen(res.data.minProfitFen ?? 300);
       if (res.data.contact) setContact(res.data.contact);
       if (res.data.epay) setEpay(res.data.epay);
+      if (res.data.notify) setNotify((prev: any) => ({ ...prev, ...res.data.notify }));
       setHasEnvActivationKey(Boolean(res.data.hasEnvActivationKey));
       setHasEnvOrderKey(Boolean(res.data.hasEnvOrderKey));
       setSuzheApiKey(res.data.suzheApiKey || "");
@@ -205,6 +214,7 @@ export default function AdminPage() {
         minProfitFen,
         contact,
         epay,
+        notify,
         suzheApiKey: suzheApiKey.trim(),
         suzheOrderKey: suzheOrderKey.trim(),
         productOverrides: nextOverrides ?? productOverrides,
@@ -310,8 +320,17 @@ export default function AdminPage() {
       });
       const res = await resp.json();
       if (resp.ok && res.url) {
-        setContact((prev: any) => ({ ...prev, [field]: res.url }));
-        showToast("success", "二维码已存入 Supabase 云端保险柜！请点击右上角【保存全部修改】生效。");
+        const nextContact = { ...contact, [field]: res.url };
+        setContact(nextContact);
+        await fetch("/api/admin/store", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-secret": authKey.trim(),
+          },
+          body: JSON.stringify({ contact: nextContact }),
+        }).catch(() => {});
+        showToast("success", "二维码已存入云端保险柜并自动绑定生效！");
       } else {
         showToast("error", res.error || "上传失败");
       }
@@ -319,6 +338,30 @@ export default function AdminPage() {
       showToast("error", "上传异常: " + e.message);
     } finally {
       setUploadingField(null);
+    }
+  };
+
+  const handleTestMobileNotify = async () => {
+    setTestingNotify(true);
+    try {
+      const resp = await fetch("/api/admin/test-notify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": authKey.trim(),
+        },
+        body: JSON.stringify({ notify }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        showToast("success", data.message || "测试推送已送达手机！");
+      } else {
+        showToast("error", data.error || "测试推送未成功");
+      }
+    } catch {
+      showToast("error", "网络请求失败，请重试");
+    } finally {
+      setTestingNotify(false);
     }
   };
 
@@ -1054,6 +1097,118 @@ export default function AdminPage() {
           {/* ==================== TAB 4: 双密钥检测与永久收款二维码配置 ==================== */}
           {activeTab === "SETTINGS" ? (
             <div className="space-y-6">
+              {/* 方案一：手机微信 / Bark 强提醒 + 免登录 1 秒自动发卡 */}
+              <div className="glass-card p-6 rounded-2xl space-y-4 border border-emerald-400/35">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="text-sm sm:text-base font-bold text-white">
+                        📱 方案一：手机秒级收款提醒 + 1 秒免登录自动发卡（0 手续费）
+                      </span>
+                    </div>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      顾客扫码点「我已付款」瞬间自动弹窗到你手机，附带专属加密绿色按钮，手机上点一下直接调苏哲秒发卡，无需盯电脑！
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleTestMobileNotify}
+                    disabled={testingNotify}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer self-start flex-shrink-0 shadow-md"
+                  >
+                    {testingNotify ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                    <span>保存并发送测试消息到手机</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-300">
+                        ① 推荐：微信 PushPlus Token（安卓/苹果通用）
+                      </span>
+                      <a
+                        href="https://www.pushplus.plus/push1.html"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-300 hover:underline inline-flex items-center gap-0.5 text-[11px]"
+                      >
+                        30秒免费扫码拿Token <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 leading-relaxed">
+                      微信扫码登录 pushplus.plus 关注公众号即可复制一串 32 位 Token 粘贴在下方，新单直推微信聊天窗！
+                    </p>
+                    <input
+                      type="text"
+                      value={notify.pushplusToken || ""}
+                      onChange={(e) =>
+                        setNotify({ ...notify, enabled: true, pushplusToken: e.target.value })
+                      }
+                      placeholder="粘贴 32 位 PushPlus Token，例如 a1b2c3d4..."
+                      className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sky-300">
+                        ② 苹果神器：iPhone Bark 强弹窗 Key（可选）
+                      </span>
+                      <span className="text-[11px] text-neutral-400">App Store 搜「Bark」</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 leading-relaxed">
+                      iPhone 下载免费 Bark App，复制里面的设备 Key 或链接填在下方，自带收钱音效且锁屏点击横幅直接跳发卡页！
+                    </p>
+                    <input
+                      type="text"
+                      value={notify.barkKey || ""}
+                      onChange={(e) =>
+                        setNotify({ ...notify, enabled: true, barkKey: e.target.value })
+                      }
+                      placeholder="粘贴 Bark Key 或 https://api.day.app/xxxx"
+                      className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      可选：Server酱 SendKey (SCT...)
+                    </label>
+                    <input
+                      type="text"
+                      value={notify.serverChanKey || ""}
+                      onChange={(e) =>
+                        setNotify({ ...notify, enabled: true, serverChanKey: e.target.value })
+                      }
+                      placeholder="如使用 Server酱可填 SCT..."
+                      className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      可选：企业微信 / 飞书 / 钉钉群机器人 Webhook
+                    </label>
+                    <input
+                      type="text"
+                      value={notify.webhookUrl || ""}
+                      onChange={(e) =>
+                        setNotify({ ...notify, enabled: true, webhookUrl: e.target.value })
+                      }
+                      placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..."
+                      className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* 苏哲双密钥状态 */}
               <div className="glass-card corner-bracket p-6 rounded-xl space-y-4 border border-cyan-500/30">
                 <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">

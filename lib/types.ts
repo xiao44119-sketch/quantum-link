@@ -130,6 +130,14 @@ export interface EPayConfig {
   key?: string;
 }
 
+export interface MobileNotifyConfig {
+  enabled?: boolean;
+  pushplusToken?: string;
+  barkKey?: string;
+  serverChanKey?: string;
+  webhookUrl?: string;
+}
+
 export interface VaultStoreConfig {
   adminSecret: string;
   suzheApiKey?: string; // Optional override for aisub_
@@ -140,6 +148,7 @@ export interface VaultStoreConfig {
   minProfitFen: number;
   contact: StoreContact;
   epay?: EPayConfig;
+  notify?: MobileNotifyConfig;
   productOverrides: Record<string, ProductOverrideConfig>;
 }
 

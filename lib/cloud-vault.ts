@@ -137,6 +137,10 @@ export async function getVaultStoreConfig(skipCache = false): Promise<VaultStore
         ...DEFAULT_STORE_CONFIG.contact,
         ...(stored.contact || {}),
       },
+      notify: {
+        enabled: true,
+        ...(stored.notify || {}),
+      },
       productOverrides: stored.productOverrides || {},
     };
     configCache = { data: merged, expiresAt: Date.now() + 8000 };
@@ -156,6 +160,10 @@ export async function saveVaultStoreConfig(patch: Partial<VaultStoreConfig>): Pr
       ...current.contact,
       ...(patch.contact || {}),
     },
+    notify:
+      patch.notify !== undefined
+        ? { ...(current.notify || {}), ...patch.notify }
+        : current.notify,
     productOverrides: patch.productOverrides !== undefined ? patch.productOverrides : current.productOverrides,
   };
 
