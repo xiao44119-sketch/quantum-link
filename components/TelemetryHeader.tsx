@@ -52,12 +52,12 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
     <header
       className={`sticky top-0 z-40 w-full transition-all duration-300 ${
         scrolled
-          ? "border-b border-[var(--rule)] bg-[var(--nav-glass)] backdrop-blur-2xl shadow-sm"
+          ? "border-b border-[var(--rule)] bg-[var(--nav-glass)] backdrop-blur-2xl"
           : "border-b border-transparent bg-transparent"
       }`}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-[72px] flex items-center justify-between gap-3">
-        {/* 左侧：艺术感品牌徽标（带苏哲同款弹簧微倾反馈） */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-[70px] flex items-center justify-between gap-3">
+        {/* 左侧：黑钛冰青棱镜品牌标识 */}
         <button
           type="button"
           onClick={() => {
@@ -67,33 +67,35 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
           className="flex items-center gap-3 group text-left cursor-pointer"
         >
           <div
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-[13px] flex items-center justify-center shadow-md transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-105"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border border-sky-400/30 shadow-[0_0_24px_-4px_rgba(56,189,248,0.5)] transition-transform duration-500 group-hover:scale-105"
             style={{
-              background: "linear-gradient(135deg, #E27B58 0%, #C85A38 100%)",
-              color: "#FAF8F5",
+              background:
+                "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.34) 100%)",
             }}
           >
-            <span className="font-serif-editorial font-bold text-lg leading-none">F</span>
+            <span className="font-bold text-base sm:text-lg tracking-tighter text-sky-300">
+              F
+            </span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-serif-editorial font-semibold text-base sm:text-[17px] tracking-tight text-[var(--ink)]">
+              <span className="font-semibold text-[15px] sm:text-base tracking-tight text-[var(--ink)]">
                 骁清 FINN
               </span>
-              <span className="hidden md:inline-block text-[10px] font-medium px-2 py-0.5 rounded-full border border-[var(--rule-strong)] text-[var(--ink-2)] bg-[var(--bg-subtle)]">
-                数字算力馆
+              <span className="hidden md:inline-block text-[10px] font-mono tracking-wider uppercase px-2 py-0.5 rounded-full border border-[var(--rule-strong)] text-[var(--ink-2)] bg-[var(--bg-subtle)]">
+                QUANTUM
               </span>
             </div>
-            <span className="hidden sm:block text-[11px] text-[var(--ink-3)] mt-0.5">
-              Official AI Subscription Studio
+            <span className="hidden sm:block text-[11px] text-[var(--ink-3)]">
+              Official AI Compute Boutique
             </span>
           </div>
         </button>
 
-        {/* 中部：高定悬浮胶囊分段导航 */}
+        {/* 中部：Linear 风格高透悬浮胶囊分段导航 */}
         <nav
           aria-label="主导航"
-          className="flex items-center p-1 rounded-full border border-[var(--rule)] bg-[var(--bg-elevated)] backdrop-blur-xl shadow-sm"
+          className="flex items-center p-1 rounded-full border border-[var(--rule)] bg-[var(--bg-elevated)] backdrop-blur-2xl shadow-sm"
         >
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -106,7 +108,7 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
                   soundFX.play("switch");
                   onSelectTab(item.id);
                 }}
-                className={`relative px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-[13.5px] font-medium transition-all duration-300 flex items-center gap-1.5 cursor-pointer ${
+                className={`relative px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-[13px] font-medium transition-all duration-300 flex items-center gap-1.5 cursor-pointer ${
                   active
                     ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-sm font-semibold"
                     : "text-[var(--ink-2)] hover:text-[var(--ink)]"
@@ -123,11 +125,11 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
           })}
         </nav>
 
-        {/* 右侧：状态、微音效、日夜纸墨双主题切换与站长入口 */}
+        {/* 右侧：状态、微音效、黑钛/雾白主题与站长后台 */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--rule)] bg-[var(--bg-subtle)] text-[11.5px] text-[var(--ink-2)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ql-halo-dot" />
-            <span>网关在线</span>
+          <div className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--rule)] bg-[var(--bg-subtle)] text-[11px] font-mono text-[var(--ink-2)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ql-halo-dot" />
+            <span>SYNC · LIVE</span>
           </div>
 
           <button
@@ -149,17 +151,17 @@ export const TelemetryHeader: React.FC<HeaderProps> = ({
               onToggleTheme();
             }}
             className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-full border border-[var(--rule)] bg-[var(--bg-subtle)] hover:border-[var(--rule-strong)] flex items-center gap-1.5 text-xs text-[var(--ink-2)] hover:text-[var(--ink)] transition-all cursor-pointer"
-            title={theme === "dark" ? "切换至「日出暖纸」主题" : "切换至「深夜星屿」主题"}
+            title={theme === "dark" ? "切换至「冰川雾白」浅色模式" : "切换至「深空黑钛」暗色模式"}
           >
             {theme === "dark" ? (
               <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden md:inline text-[11.5px]">暖纸</span>
+                <Sun className="w-3.5 h-3.5 text-sky-300" />
+                <span className="hidden md:inline text-[11.5px]">雾白</span>
               </>
             ) : (
               <>
-                <Moon className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="hidden md:inline text-[11.5px]">星屿</span>
+                <Moon className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="hidden md:inline text-[11.5px]">黑钛</span>
               </>
             )}
           </button>

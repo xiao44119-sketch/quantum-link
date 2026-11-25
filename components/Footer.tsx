@@ -62,10 +62,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateTab }) => {
             <div className="md:col-span-2 space-y-3">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center font-serif-editorial font-bold text-sm"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center border border-sky-400/30 text-sky-300 font-bold text-sm shadow-[0_0_18px_-4px_rgba(56,189,248,0.45)]"
                   style={{
-                    background: "linear-gradient(135deg, #E27B58 0%, #C85A38 100%)",
-                    color: "#FAF8F5",
+                    background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.34) 100%)",
                   }}
                 >
                   F

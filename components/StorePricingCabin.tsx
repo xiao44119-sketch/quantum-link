@@ -1,37 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Check,
   ArrowRight,
-  ShieldCheck,
-  Zap,
   Clock,
   X,
   Copy,
-  CreditCard,
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
-  Sparkles,
-  MessageCircle,
   Loader2,
   ExternalLink,
   Layers,
-  GraduationCap,
-  Smartphone,
-  Send,
-  Bot,
-  Rocket,
-  Mail,
+  LayoutGrid,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { STORE_PRODUCTS as FALLBACK_PRODUCTS } from "@/config/store-products";
 import { DeliveredItem, StoreContact, StoreProduct } from "@/lib/types";
 import { SpotlightCard } from "./SpotlightCard";
+import { BrandEmblem, BrandHouseKey } from "./BrandEmblems";
 import { soundFX } from "@/lib/tactile-feedback";
 
 interface Props {
   onGoToRedeem: (cdkOrPrefix?: string) => void;
+  onHoverAccent?: (hex: string | null) => void;
+  entranceBaseDelayMs?: number;
 }
 
 type OrderStage = "CONFIG" | "PAYING" | "AWAITING_CONFIRM" | "EXPIRED" | "SUCCESS";
@@ -50,65 +45,119 @@ interface ActiveCheckoutOrder {
   deliveredItems: DeliveredItem[];
 }
 
-function getBrandVisual(p: StoreProduct) {
-  const id = p.id.toLowerCase();
-  if (id.startsWith("gpt_")) {
-    return {
-      tileBg: "linear-gradient(135deg, rgba(61, 145, 108, 0.22), rgba(61, 145, 108, 0.08))",
-      tileColor: "#52B788",
-      spotlight: "rgba(82, 183, 136, 0.16)",
-      Icon: Bot,
-    };
-  }
-  if (id.includes("sheerid") || id.includes("gemini")) {
-    return {
-      tileBg: "linear-gradient(135deg, rgba(115, 134, 232, 0.24), rgba(168, 130, 255, 0.08))",
-      tileColor: "#8EA0F8",
-      spotlight: "rgba(130, 148, 248, 0.17)",
-      Icon: id.includes("sheerid") ? GraduationCap : Sparkles,
-    };
-  }
-  if (id.includes("card_virtual")) {
-    return {
-      tileBg: "linear-gradient(135deg, rgba(230, 190, 138, 0.26), rgba(217, 119, 87, 0.08))",
-      tileColor: "#E6BE8A",
-      spotlight: "rgba(230, 190, 138, 0.18)",
-      Icon: CreditCard,
-    };
-  }
-  if (id.includes("sms")) {
-    return {
-      tileBg: "linear-gradient(135deg, rgba(226, 123, 88, 0.24), rgba(226, 123, 88, 0.08))",
-      tileColor: "#EB8A6A",
-      spotlight: "rgba(226, 123, 88, 0.17)",
-      Icon: Smartphone,
-    };
-  }
-  if (id.includes("tg_") || id.includes("telegram")) {
-    return {
-      tileBg: "linear-gradient(135deg, rgba(74, 150, 217, 0.24), rgba(74, 150, 217, 0.08))",
-      tileColor: "#63B3ED",
-      spotlight: "rgba(99, 179, 237, 0.16)",
-      Icon: Send,
-    };
-  }
-  if (id.includes("muse") || id.includes("grok")) {
-    return {
-      tileBg: "linear-gradient(135deg, rgba(217, 119, 87, 0.22), rgba(230, 190, 138, 0.08))",
-      tileColor: "#E5A97C",
-      spotlight: "rgba(229, 169, 124, 0.16)",
-      Icon: Rocket,
-    };
-  }
-  return {
-    tileBg: "linear-gradient(135deg, rgba(160, 174, 192, 0.2), rgba(160, 174, 192, 0.06))",
-    tileColor: "#CBD5E1",
-    spotlight: "rgba(203, 213, 225, 0.14)",
-    Icon: Mail,
-  };
+interface BrandGalleryGroup {
+  key: BrandHouseKey;
+  name: string;
+  eyebrow: string;
+  tagline: string;
+  accentHex: string;
+  spotlightRgba: string;
+  featured?: boolean;
+  items: StoreProduct[];
 }
 
-export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
+function classifyBrandHouse(p: StoreProduct): BrandHouseKey {
+  const id = p.id.toLowerCase();
+  if (id.startsWith("gpt_")) return "openai";
+  if (id.includes("sheerid") || id.includes("gemini") || id.includes("gmail")) return "gemini";
+  if (id.includes("grok")) return "grok";
+  if (id.includes("card_virtual") || id.includes("sms")) return "card_sms";
+  if (id.startsWith("tg_") || id.includes("telegram")) return "telegram";
+  return "creative";
+}
+
+const HOUSE_META: Record<
+  BrandHouseKey,
+  Omit<BrandGalleryGroup, "items">
+> = {
+  openai: {
+    key: "openai",
+    name: "ChatGPT 官方旗舰订阅",
+    eyebrow: "OPENAI OFFICIAL",
+    tagline: "Plus 零密码代充 · Pro 10x / 20x 满血算力无损直升",
+    accentHex: "#10B981",
+    spotlightRgba: "rgba(16, 185, 129, 0.19)",
+    featured: true,
+  },
+  gemini: {
+    key: "gemini",
+    name: "Gemini Pro & 学生认证",
+    eyebrow: "GOOGLE AI ECOSYSTEM",
+    tagline: "SheerID 免密链接过审 · Gemini Pro 季卡 · 美区 2FA 谷歌号",
+    accentHex: "#818CF8",
+    spotlightRgba: "rgba(129, 140, 248, 0.2)",
+    featured: true,
+  },
+  grok: {
+    key: "grok",
+    name: "xAI SuperGrok 订阅",
+    eyebrow: "XAI SUPERGROK",
+    tagline: "深度联网实时搜索与无限制推理 · 免密卡密秒级直充",
+    accentHex: "#E2E8F0",
+    spotlightRgba: "rgba(226, 232, 240, 0.16)",
+  },
+  card_sms: {
+    key: "card_sms",
+    name: "海外绑卡虚拟卡 & 接码",
+    eyebrow: "VIRTUAL CARD & SMS",
+    tagline: "5 大纯净 BIN 卡头 · 谷歌/OpenAI 试用绑卡与实时短信验证",
+    accentHex: "#38BDF8",
+    spotlightRgba: "rgba(56, 189, 248, 0.2)",
+    featured: true,
+  },
+  telegram: {
+    key: "telegram",
+    name: "Telegram 会员与美区号",
+    eyebrow: "TELEGRAM PREMIUM",
+    tagline: "3 / 6 / 12 个月官方会员 @用户名免登直充 · +1 纯净成品号",
+    accentHex: "#0EA5E9",
+    spotlightRgba: "rgba(14, 165, 233, 0.19)",
+  },
+  creative: {
+    key: "creative",
+    name: "AI 创作与算力加速包",
+    eyebrow: "CREATOR & TOKEN BOOST",
+    tagline: "Muse 单次 +10亿 Token · ElevenLabs 语音 · Figma 教育版",
+    accentHex: "#A855F7",
+    spotlightRgba: "rgba(168, 85, 247, 0.19)",
+  },
+};
+
+const HOUSE_ORDER: BrandHouseKey[] = [
+  "openai",
+  "gemini",
+  "card_sms",
+  "grok",
+  "telegram",
+  "creative",
+];
+
+function shortTierLabel(p: StoreProduct): string {
+  const id = p.id.toLowerCase();
+  if (id === "gpt_plus_ch2") return "Plus 月卡直充";
+  if (id === "gpt_pro_5x_660") return "Pro 10x 推理版";
+  if (id === "gpt_pro_20x_1350") return "Pro 20x 满血版";
+  if (id.includes("sheerid")) return "SheerID 学生认证";
+  if (id.includes("gemini_pixel")) return "Gemini Pro 季卡";
+  if (id.includes("gmail")) return "美区 Gmail 成品号";
+  if (id.includes("card_virtual")) return "海外绑卡虚拟卡";
+  if (id.includes("codex_sms")) return "Codex 海外接码";
+  if (id.includes("tg_premium_3m")) return "Premium 3个月";
+  if (id.includes("tg_premium_6m")) return "Premium 6个月";
+  if (id.includes("tg_premium_12m")) return "Premium 12个月";
+  if (id.includes("telegram_us")) return "+1 美区成品号";
+  if (id.includes("grok")) return "SuperGrok 激活码";
+  if (id.includes("muse")) return "Muse +10亿 Token";
+  if (id.includes("elevenlabs")) return "ElevenLabs 季卡";
+  if (id.includes("figma")) return "Figma Pro 2年";
+  return p.title.slice(0, 12);
+}
+
+export const StorePricingCabin: React.FC<Props> = ({
+  onGoToRedeem,
+  onHoverAccent,
+  entranceBaseDelayMs = 0,
+}) => {
   const [products, setProducts] = useState<StoreProduct[]>(FALLBACK_PRODUCTS);
   const [contactInfo, setContactInfo] = useState<StoreContact>({
     wechat: "18300425760",
@@ -117,6 +166,11 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
   });
   const [sandboxDemoEnabled, setSandboxDemoEnabled] = useState(false);
 
+  // Gallery vs All-SKU flat view toggle (defaults to ultra-clean 6-card Gallery)
+  const [viewMode, setViewMode] = useState<"gallery" | "all">("gallery");
+
+  // Active Gallery House & Selected SKU inside the sleek modal
+  const [activeHouseKey, setActiveHouseKey] = useState<BrandHouseKey | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
   const [chosenVariant, setChosenVariant] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
@@ -131,7 +185,6 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isNotifyingPaid, setIsNotifyingPaid] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
   useEffect(() => {
     fetch("/api/store/products")
@@ -150,15 +203,30 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       .catch(() => {});
   }, []);
 
-  const filteredProducts = products.filter((p) => {
-    if (categoryFilter === "POPULAR") return p.isPopular;
-    if (categoryFilter === "FLAGSHIP") return p.category === "flagship";
-    if (categoryFilter === "VERIFY") return p.category === "verify";
-    if (categoryFilter === "ACCOUNT") return p.category === "account";
-    return true;
-  });
+  const galleryGroups: BrandGalleryGroup[] = useMemo(() => {
+    const bucket: Record<BrandHouseKey, StoreProduct[]> = {
+      openai: [],
+      gemini: [],
+      grok: [],
+      card_sms: [],
+      telegram: [],
+      creative: [],
+    };
+    for (const p of products) {
+      bucket[classifyBrandHouse(p)].push(p);
+    }
+    return HOUSE_ORDER.map((k) => ({
+      ...HOUSE_META[k],
+      items: bucket[k],
+    })).filter((g) => g.items.length > 0);
+  }, [products]);
 
-  const openProductSheet = (product: StoreProduct) => {
+  const activeGroup = useMemo(
+    () => galleryGroups.find((g) => g.key === activeHouseKey) || null,
+    [galleryGroups, activeHouseKey]
+  );
+
+  const selectSkuInsideModal = (product: StoreProduct) => {
     soundFX.play("tap");
     setSelectedProduct(product);
     const firstAvailableVar =
@@ -168,8 +236,39 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
     setChosenVariant(firstAvailableVar);
     setQuantity(1);
     setOrderError(null);
+  };
+
+  const openHouseDrawer = (group: BrandGalleryGroup, initialSku?: StoreProduct) => {
+    soundFX.play("switch");
+    setActiveHouseKey(group.key);
+    const target =
+      initialSku ||
+      group.items.find((i) => (i.stock ?? 1) > 0) ||
+      group.items[0];
+    if (target) {
+      selectSkuInsideModal(target);
+    }
     setActiveOrder(null);
     setOrderStage("CONFIG");
+  };
+
+  const openSingleSkuDirectly = (product: StoreProduct) => {
+    const houseKey = classifyBrandHouse(product);
+    const group = galleryGroups.find((g) => g.key === houseKey);
+    if (group) {
+      openHouseDrawer(group, product);
+    } else {
+      selectSkuInsideModal(product);
+      setActiveOrder(null);
+      setOrderStage("CONFIG");
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedProduct(null);
+    setActiveHouseKey(null);
+    setActiveOrder(null);
+    setOrderError(null);
   };
 
   const handleCreateOrder = async () => {
@@ -294,9 +393,10 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
     if (!activeOrder) return;
     setIsNotifyingPaid(true);
     try {
-      const resp = await fetch(`/api/checkout/orders?orderId=${encodeURIComponent(activeOrder.orderId)}`, {
-        method: "PUT",
-      });
+      const resp = await fetch(
+        `/api/checkout/orders?orderId=${encodeURIComponent(activeOrder.orderId)}`,
+        { method: "PUT" }
+      );
       const data = await resp.json();
       if (data.success && data.order?.delivered_items?.length > 0) {
         soundFX.play("success");
@@ -336,27 +436,236 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
         contactInfo.alipayQrImage;
 
   return (
-    <div className="space-y-10 sm:space-y-12">
-      {/* Apple Pay 级高定结算模态弹窗 */}
-      {selectedProduct ? (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/65 backdrop-blur-xl animate-in fade-in duration-200">
-          <div className="ql-pop relative w-full max-w-lg rounded-t-[28px] sm:rounded-[28px] max-h-[92vh] overflow-y-auto bg-[var(--bg)] border-t sm:border border-[var(--rule-strong)] p-6 sm:p-8 text-[var(--ink)] shadow-2xl">
-            <div className="w-10 h-1 bg-[var(--rule-strong)] rounded-full mx-auto mb-4 sm:hidden" />
+    <div className="space-y-6 sm:space-y-7">
+      {/* 顶部极简视图控制栏 */}
+      <div
+        style={{ animationDelay: `${entranceBaseDelayMs + 280}ms` }}
+        className="ql-rise flex items-center justify-between gap-3 px-1"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 ql-halo-dot" />
+          <span className="text-xs sm:text-[13px] font-medium text-[var(--ink-2)]">
+            六大官方直连数字馆 · 点选品牌进入面值规格仓
+          </span>
+        </div>
 
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4 mb-5">
-              <div>
-                <h3 className="font-serif-editorial text-lg sm:text-xl font-semibold text-[var(--ink)]">
-                  {orderStage === "CONFIG" ? "确认选购规格" : "扫码支付与自动发卡"}
-                </h3>
-                <span className="text-xs text-[var(--ink-3)] block mt-0.5 font-mono">
-                  {activeOrder ? `NO. ${activeOrder.orderId}` : selectedProduct.title}
-                </span>
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.play("switch");
+            setViewMode((v) => (v === "gallery" ? "all" : "gallery"));
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--rule)] hover:border-[var(--rule-strong)] bg-[var(--bg-subtle)] text-[11.5px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-all cursor-pointer"
+        >
+          <LayoutGrid className="w-3.5 h-3.5 text-[var(--clay)]" />
+          <span>{viewMode === "gallery" ? `展开全部 ${products.length} 款单品` : "返回极简品牌画廊"}</span>
+        </button>
+      </div>
+
+      {/* ==================== 模式 A：极简 6 大核心品牌画廊大卡 ==================== */}
+      {viewMode === "gallery" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {galleryGroups.map((group, idx) => {
+            const minPrice = Math.min(
+              ...group.items.map((p) => parseFloat(p.price) || 9999)
+            );
+            const totalStock = group.items.reduce(
+              (acc, item) => acc + (typeof item.stock === "number" ? item.stock : 50),
+              0
+            );
+            const soldOut = totalStock <= 0;
+
+            return (
+              <SpotlightCard
+                key={group.key}
+                enableTilt={true}
+                featured={group.featured}
+                spotlightColor={group.spotlightRgba}
+                delayMs={entranceBaseDelayMs + 340 + idx * 65}
+                onClick={() => openHouseDrawer(group)}
+                onMouseEnterCard={() => onHoverAccent?.(group.accentHex)}
+                onMouseLeaveCard={() => onHoverAccent?.(null)}
+                className="group p-6 sm:p-7 cursor-pointer select-none min-h-[278px]"
+              >
+                {/* 顶部：高精度发光品牌徽标 + 实时库存胶囊 */}
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <BrandEmblem brand={group.key} size="lg" />
+
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span
+                        className="text-[10px] font-mono uppercase tracking-[0.14em] px-2.5 py-1 rounded-full border border-[var(--rule-strong)] bg-[var(--bg-subtle)] text-[var(--ink-2)]"
+                      >
+                        {group.items.length} 款规格可选
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--ink-3)]">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            soldOut ? "bg-rose-400" : "bg-emerald-400"
+                          }`}
+                        />
+                        <span>{soldOut ? "补货中" : `实时余量 ${totalStock}+`}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 中部：品牌大类标题与精炼导语 */}
+                  <div className="mt-6">
+                    <span
+                      className="text-[10.5px] font-mono tracking-[0.18em] uppercase block mb-1.5"
+                      style={{ color: group.accentHex }}
+                    >
+                      {group.eyebrow}
+                    </span>
+                    <h2 className="text-xl sm:text-[22px] font-semibold tracking-tight text-[var(--ink)] group-hover:translate-x-0.5 transition-transform">
+                      {group.name}
+                    </h2>
+                    <p className="text-xs sm:text-[13px] leading-relaxed text-[var(--ink-2)] mt-2 line-clamp-2">
+                      {group.tagline}
+                    </p>
+                  </div>
+
+                  {/* 规格快捷胶囊预览（可直接点进对应面值） */}
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {group.items.slice(0, 3).map((sku) => (
+                      <button
+                        key={sku.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openHouseDrawer(group, sku);
+                        }}
+                        className="px-2.5 py-1 rounded-lg border border-[var(--rule)] hover:border-[var(--rule-strong)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[11px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+                      >
+                        {shortTierLabel(sku)}
+                      </button>
+                    ))}
+                    {group.items.length > 3 ? (
+                      <span className="px-2 py-1 text-[11px] text-[var(--ink-3)]">
+                        +{group.items.length - 3}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* 底部：起步价与黑钛流光入口 */}
+                <div className="mt-6 pt-4 border-t border-[var(--rule)] flex items-end justify-between gap-3">
+                  <div className="tabular-nums">
+                    <span className="text-[11px] text-[var(--ink-3)] block mb-0.5">
+                      官方直连严选价
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xs font-semibold text-[var(--ink-2)]">¥</span>
+                      <span className="text-2xl font-bold tracking-tight text-[var(--ink)]">
+                        {minPrice.toFixed(minPrice % 1 === 0 ? 0 : 2)}
+                      </span>
+                      {group.items.length > 1 ? (
+                        <span className="text-xs text-[var(--ink-3)] ml-0.5">起</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--bg-subtle)] group-hover:bg-[var(--btn-primary-bg)] text-[var(--ink)] group-hover:text-[var(--btn-primary-fg)] border border-[var(--rule-strong)] group-hover:border-transparent text-xs font-semibold transition-all duration-300">
+                    <span>选择规格</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </SpotlightCard>
+            );
+          })}
+        </div>
+      ) : (
+        /* ==================== 模式 B：紧凑全量单品矩阵 ==================== */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {products.map((p, idx) => {
+            const house = classifyBrandHouse(p);
+            const meta = HOUSE_META[house];
+            const outOfStock = typeof p.stock === "number" && p.stock <= 0;
+            return (
+              <SpotlightCard
+                key={p.id}
+                spotlightColor={meta.spotlightRgba}
+                delayMs={idx * 25}
+                onClick={() => openSingleSkuDirectly(p)}
+                className="p-5 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <BrandEmblem brand={house} size="md" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-[var(--ink)] leading-snug">
+                        {p.title}
+                      </h3>
+                      <span className="text-[11px] text-[var(--ink-3)] line-clamp-1 mt-0.5 block">
+                        {p.sub}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-[var(--rule)] flex items-center justify-between">
+                  <div className="tabular-nums flex items-baseline gap-1">
+                    <span className="text-xs text-[var(--clay)] font-semibold">¥</span>
+                    <span className="text-lg font-bold text-[var(--ink)]">{p.price}</span>
+                    {p.originalPrice ? (
+                      <span className="text-[11px] text-[var(--ink-3)] line-through ml-1">
+                        ¥{p.originalPrice}
+                      </span>
+                    ) : null}
+                  </div>
+                  <span
+                    className={`text-[11px] font-medium ${
+                      outOfStock ? "text-rose-400" : "text-emerald-400"
+                    }`}
+                  >
+                    {outOfStock
+                      ? "暂时缺货"
+                      : typeof p.stock === "number"
+                        ? `余 ${p.stock} · 选购 →`
+                        : "极速秒发 →"}
+                  </span>
+                </div>
+              </SpotlightCard>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ==================== Linear / Apple Store 级规格抽屉与扫码收银台 ==================== */}
+      {selectedProduct ? (
+        <div
+          onClick={closeModal}
+          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/72 backdrop-blur-xl"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="ql-pop relative w-full max-w-xl rounded-t-[26px] sm:rounded-[26px] max-h-[92vh] overflow-y-auto bg-[var(--bg)] border-t sm:border border-[var(--rule-strong)] p-5 sm:p-6 text-[var(--ink)] shadow-2xl"
+          >
+            <div className="w-10 h-1 bg-[var(--rule-strong)] rounded-full mx-auto mb-3 sm:hidden" />
+
+            {/* 模态框头部 */}
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3.5 mb-4">
+              <div className="flex items-center gap-3">
+                <BrandEmblem
+                  brand={activeGroup?.key || classifyBrandHouse(selectedProduct)}
+                  size="md"
+                />
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold tracking-tight text-[var(--ink)]">
+                    {orderStage === "CONFIG"
+                      ? activeGroup?.name || selectedProduct.title
+                      : "扫码收银与自动发卡"}
+                  </h3>
+                  <span className="text-[11.5px] text-[var(--ink-3)] block font-mono">
+                    {activeOrder
+                      ? `ORDER · ${activeOrder.orderId}`
+                      : "官方正版源头仓实时锁单 · 零密码安全交付"}
+                  </span>
+                </div>
               </div>
               <button
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setActiveOrder(null);
-                }}
+                type="button"
+                onClick={closeModal}
                 className="w-8 h-8 rounded-full bg-[var(--bg-subtle)] hover:bg-[var(--rule)] flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -364,25 +673,114 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
             </div>
 
             {orderStage === "CONFIG" ? (
-              <div className="space-y-5 text-sm">
-                <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] flex items-center justify-between">
-                  <div>
-                    <span className="font-semibold text-[var(--ink)] block">{selectedProduct.title}</span>
-                    <span className="text-xs text-[var(--ink-3)] mt-0.5 block">{selectedProduct.sub}</span>
+              <div className="space-y-4 text-sm">
+                {/* 1. 大类下具体面值规格切换矩阵 */}
+                {activeGroup && activeGroup.items.length > 1 ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-[var(--ink-2)] flex items-center justify-between">
+                      <span>选择具体套餐规格</span>
+                      <span className="text-[11px] text-[var(--ink-3)]">
+                        共 {activeGroup.items.length} 款细分档位
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {activeGroup.items.map((sku) => {
+                        const isSelected = sku.id === selectedProduct.id;
+                        const skuOut = typeof sku.stock === "number" && sku.stock <= 0;
+                        return (
+                          <button
+                            key={sku.id}
+                            type="button"
+                            onClick={() => selectSkuInsideModal(sku)}
+                            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                              isSelected
+                                ? "border-[var(--clay)] bg-[var(--bg-card-hover)] shadow-[0_0_0_1px_var(--clay)]"
+                                : "border-[var(--rule)] bg-[var(--bg-subtle)] hover:border-[var(--rule-strong)]"
+                            } ${skuOut ? "opacity-55" : ""}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-semibold text-xs sm:text-[13px] text-[var(--ink)] leading-snug pr-4">
+                                {sku.title}
+                              </span>
+                              {isSelected ? (
+                                <span className="ql-pop w-4 h-4 rounded-full bg-[var(--clay)] text-slate-950 flex items-center justify-center flex-shrink-0">
+                                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-2.5 flex items-baseline justify-between tabular-nums">
+                              <div>
+                                <span className="text-[11px] text-[var(--clay)] font-semibold">¥</span>
+                                <span className="text-base font-bold text-[var(--ink)] ml-0.5">
+                                  {sku.price}
+                                </span>
+                                {sku.originalPrice ? (
+                                  <span className="text-[10.5px] text-[var(--ink-3)] line-through ml-1.5">
+                                    ¥{sku.originalPrice}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <span
+                                className={`text-[10.5px] ${
+                                  skuOut ? "text-rose-400" : "text-emerald-400"
+                                }`}
+                              >
+                                {skuOut
+                                  ? "缺货"
+                                  : typeof sku.stock === "number"
+                                    ? `余 ${sku.stock}`
+                                    : "现货"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="text-right tabular-nums">
-                    <span className="text-xs text-[var(--clay)] font-semibold">¥</span>
-                    <span className="text-2xl font-bold text-[var(--ink)] ml-0.5">
-                      {(parseFloat(selectedProduct.price) * quantity).toFixed(2)}
-                    </span>
+                ) : null}
+
+                {/* 2. 当前选中规格详情与权益摘要 */}
+                <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-[var(--ink)]">
+                          {selectedProduct.title}
+                        </span>
+                        {selectedProduct.badge ? (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/25">
+                            {selectedProduct.badge}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-[var(--ink-2)] mt-1 leading-relaxed">
+                        {selectedProduct.description}
+                      </p>
+                    </div>
                   </div>
+
+                  {selectedProduct.features && selectedProduct.features.length > 0 ? (
+                    <div className="pt-2 border-t border-[var(--rule)] grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {selectedProduct.features.slice(0, 4).map((feat, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-1.5 text-[11.5px] text-[var(--ink-2)]"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
+                {/* 3. 多卡头子规格（针对海外虚拟卡等） */}
                 {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-[var(--ink-2)] flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5 text-[var(--clay)]" />
-                      <span>选择卡头规格（实时库存）</span>
+                      <span>选择卡头 BIN 段（实时库存）</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {selectedProduct.variants.map((v) => (
@@ -394,22 +792,23 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                             soundFX.play("tap");
                             setChosenVariant(v.value);
                           }}
-                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer disabled:opacity-40 ${
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer disabled:opacity-40 ${
                             chosenVariant === v.value
-                              ? "border-[var(--ink)] bg-[var(--bg-card-hover)] shadow-sm"
+                              ? "border-[var(--clay)] bg-[var(--bg-card-hover)]"
                               : "border-[var(--rule)] bg-[var(--bg-subtle)] hover:border-[var(--rule-strong)]"
                           }`}
                         >
                           <span className="font-mono font-semibold text-xs block text-[var(--ink)]">
                             BIN {v.label}
                           </span>
-                          <span className="text-[11px] text-emerald-500">余 {v.stock} 张</span>
+                          <span className="text-[10.5px] text-emerald-400">余 {v.stock} 张</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 ) : null}
 
+                {/* 4. 购买数量与预留查询凭证 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-[var(--ink-2)] block mb-1.5">购买数量</label>
@@ -417,17 +816,21 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       <button
                         type="button"
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        className="px-3.5 h-full text-[var(--ink-2)] hover:bg-[var(--bg-subtle)] font-semibold"
+                        className="px-3.5 h-full text-[var(--ink-2)] hover:bg-[var(--bg-subtle)] font-semibold cursor-pointer"
                       >
                         −
                       </button>
-                      <span className="flex-1 text-center tabular-nums font-semibold">{quantity}</span>
+                      <span className="flex-1 text-center tabular-nums font-semibold">
+                        {quantity}
+                      </span>
                       <button
                         type="button"
                         onClick={() =>
-                          setQuantity((q) => Math.min(selectedProduct.stock || 20, 20, q + 1))
+                          setQuantity((q) =>
+                            Math.min(selectedProduct.stock || 20, 20, q + 1)
+                          )
                         }
-                        className="px-3.5 h-full text-[var(--ink-2)] hover:bg-[var(--bg-subtle)] font-semibold"
+                        className="px-3.5 h-full text-[var(--ink-2)] hover:bg-[var(--bg-subtle)] font-semibold cursor-pointer"
                       >
                         +
                       </button>
@@ -442,7 +845,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       type="text"
                       value={buyerContact}
                       onChange={(e) => setBuyerContact(e.target.value)}
-                      placeholder="随时可凭此号码在查单页取回卡密"
+                      placeholder="凭此号码可随时在「查单取卡」找回卡密"
                       className="ql-input w-full h-11 px-3.5 text-xs"
                     />
                   </div>
@@ -454,24 +857,43 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                   </div>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={handleCreateOrder}
-                  disabled={isCreatingOrder}
-                  className="ql-shimmer-btn w-full h-12 rounded-2xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-transform cursor-pointer disabled:opacity-50"
-                >
-                  {isCreatingOrder ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>正在锁定库存...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>锁定库存并前往付款</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {/* 5. 结算提交栏 */}
+                <div className="pt-1 flex items-center justify-between gap-4">
+                  <div className="tabular-nums">
+                    <span className="text-[11px] text-[var(--ink-3)] block">应付总额</span>
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-xs font-semibold text-[var(--clay)]">¥</span>
+                      <span className="text-2xl font-bold text-[var(--ink)]">
+                        {(parseFloat(selectedProduct.price) * quantity).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCreateOrder}
+                    disabled={
+                      isCreatingOrder ||
+                      (typeof selectedProduct.stock === "number" && selectedProduct.stock <= 0)
+                    }
+                    className="ql-shimmer-btn flex-1 h-12 rounded-2xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform cursor-pointer disabled:opacity-50"
+                  >
+                    {isCreatingOrder ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>正在锁定库存...</span>
+                      </>
+                    ) : typeof selectedProduct.stock === "number" &&
+                      selectedProduct.stock <= 0 ? (
+                      <span>当前规格暂时缺货</span>
+                    ) : (
+                      <>
+                        <span>锁定库存并扫码支付</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             ) : null}
 
@@ -490,7 +912,8 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule-strong)] flex items-center justify-between">
                   <div>
                     <span className="text-sm font-semibold text-[var(--ink)] block">
-                      {activeOrder.product.title} {activeOrder.quantity > 1 ? `× ${activeOrder.quantity}` : ""}
+                      {activeOrder.product.title}{" "}
+                      {activeOrder.quantity > 1 ? `× ${activeOrder.quantity}` : ""}
                     </span>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[11px] font-mono text-[var(--ink-3)]">
@@ -499,7 +922,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       <button
                         type="button"
                         onClick={() => handleCopy(activeOrder.orderId, "orderId")}
-                        className="text-[11px] text-[var(--clay)] font-medium hover:underline"
+                        className="text-[11px] text-[var(--clay)] font-medium hover:underline cursor-pointer"
                       >
                         {copiedKey === "orderId" ? "已复制" : "复制单号"}
                       </button>
@@ -518,7 +941,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                     <button
                       type="button"
                       onClick={() => setQrTab("wechat")}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-all ${
+                      className={`py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         qrTab === "wechat" ? "bg-emerald-600 text-white" : "text-[var(--ink-2)]"
                       }`}
                     >
@@ -527,7 +950,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                     <button
                       type="button"
                       onClick={() => setQrTab("alipay")}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-all ${
+                      className={`py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                         qrTab === "alipay" ? "bg-[#1677ff] text-white" : "text-[var(--ink-2)]"
                       }`}
                     >
@@ -546,14 +969,20 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       />
                     </div>
                     <p className="text-xs text-[var(--ink-2)]">
-                      请扫码支付 <strong className="text-[var(--clay)]">¥{activeOrder.totalAmount.toFixed(2)}</strong>，备注单号后四位更佳
+                      请扫码支付{" "}
+                      <strong className="text-[var(--clay)]">
+                        ¥{activeOrder.totalAmount.toFixed(2)}
+                      </strong>
+                      ，备注单号后四位核销更快
                     </p>
                   </div>
                 ) : (
                   <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule-strong)] space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-[var(--ink)]">添加站长微信转账秒发 (0手续费)</span>
-                      <span className="text-[11px] text-emerald-500 font-medium">在线自动出卡</span>
+                      <span className="font-semibold text-[var(--ink)]">
+                        添加站长微信转账秒发 (0手续费)
+                      </span>
+                      <span className="text-[11px] text-emerald-400 font-medium">在线自动出卡</span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)]">
                       <span className="font-mono text-sm font-bold text-[var(--ink)]">
@@ -562,7 +991,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                       <button
                         type="button"
                         onClick={() => handleCopy(contactInfo.wechat, "wechatId")}
-                        className="px-3 py-1.5 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-xs font-semibold inline-flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
                       >
                         <Copy className="w-3 h-3" />
                         <span>{copiedKey === "wechatId" ? "已复制" : "复制微信号"}</span>
@@ -616,21 +1045,21 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                   <Loader2 className="w-6 h-6 animate-spin text-[var(--clay)]" />
                 </div>
                 <div className="space-y-1.5">
-                  <h4 className="font-serif-editorial text-lg font-semibold text-[var(--ink)]">
-                    正在为您核销并自动提取卡密
+                  <h4 className="text-lg font-semibold text-[var(--ink)]">
+                    正在核销并从官方仓实时提卡
                   </h4>
                   <p className="text-[var(--ink-2)] leading-relaxed max-w-sm mx-auto">
-                    站长手机确认收款后，系统将自动从官方仓调配卡密并<strong>直接在此页面弹出</strong>（每 3 秒自动同步）。
+                    站长手机确认收款后，系统将自动调配卡密并<strong>直接在此页面弹出</strong>（每 3 秒自动刷新）。
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] text-left space-y-2">
                   <div className="flex items-center justify-between text-[var(--ink-2)]">
-                    <span>您的取卡单号（可复制保存）：</span>
+                    <span>您的取卡单号（可复制留存）：</span>
                     <button
                       type="button"
                       onClick={() => handleCopy(activeOrder.orderId, "awaitOrderId")}
-                      className="text-[var(--clay)] font-semibold hover:underline"
+                      className="text-[var(--clay)] font-semibold hover:underline cursor-pointer"
                     >
                       {copiedKey === "awaitOrderId" ? "已复制" : "复制"}
                     </button>
@@ -644,7 +1073,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
 
             {orderStage === "EXPIRED" ? (
               <div className="text-center py-6 space-y-4 text-xs">
-                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+                <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
                 <h4 className="text-base font-semibold text-[var(--ink)]">锁单时间已到</h4>
                 <p className="text-[var(--ink-2)] max-w-xs mx-auto">
                   若尚未付款请重新锁单；若刚完成转账，请联系客服微信 {contactInfo.wechat} 核销发卡。
@@ -652,7 +1081,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 <button
                   type="button"
                   onClick={() => setOrderStage("CONFIG")}
-                  className="px-5 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold inline-flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>重新锁单</span>
@@ -663,14 +1092,14 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
             {orderStage === "SUCCESS" && activeOrder ? (
               <div className="py-4 space-y-5 text-xs">
                 <div className="text-center space-y-1.5">
-                  <div className="ql-pop w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mx-auto">
+                  <div className="ql-pop w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
-                  <h4 className="font-serif-editorial text-xl font-semibold text-[var(--ink)]">
-                    交付完成，请查收您的专属凭证
+                  <h4 className="text-xl font-semibold text-[var(--ink)]">
+                    交付完成，请查收专属凭证
                   </h4>
                   <p className="text-[var(--ink-3)]">
-                    已同步加密存入云端保险柜，随时凭单号 {activeOrder.orderId} 调取
+                    已加密存入 Supabase 云端保险柜，随时凭单号 {activeOrder.orderId} 调取
                   </p>
                 </div>
 
@@ -689,7 +1118,7 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                           <button
                             type="button"
                             onClick={() => handleCopy(copyVal, `deliv_${idx}`)}
-                            className="px-3 py-1 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[11px] font-semibold inline-flex items-center gap-1"
+                            className="px-3 py-1 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Copy className="w-3 h-3" />
                             <span>{copiedKey === `deliv_${idx}` ? "已复制" : "一键复制"}</span>
@@ -722,13 +1151,12 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                         activeOrder.deliveredItems[0]?.copy_text ||
                         activeOrder.deliveredItems[0]?.value ||
                         "";
-                      setSelectedProduct(null);
-                      setActiveOrder(null);
+                      closeModal();
                       onGoToRedeem(firstCdk);
                     }}
-                    className="ql-shimmer-btn w-full h-12 rounded-2xl bg-[var(--clay)] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                    className="ql-shimmer-btn w-full h-12 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg cursor-pointer"
                   >
-                    <span>带入卡密 · 一键前往自助开通台</span>
+                    <span>带入卡密 · 一键前往 7 合 1 自助开通台</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 ) : null}
@@ -737,225 +1165,6 @@ export const StorePricingCabin: React.FC<Props> = ({ onGoToRedeem }) => {
           </div>
         </div>
       ) : null}
-
-      {/* 高定胶囊筛选坞 */}
-      <div
-        style={{ animationDelay: "380ms" }}
-        className="ql-rise flex items-center justify-center gap-2 flex-wrap"
-      >
-        {[
-          { id: "ALL", label: "全部严选", count: products.length },
-          { id: "POPULAR", label: "主推爆款", count: products.filter((p) => p.isPopular).length },
-          {
-            id: "FLAGSHIP",
-            label: "AI 旗舰订阅",
-            count: products.filter((p) => p.category === "flagship").length,
-          },
-          {
-            id: "VERIFY",
-            label: "学生认证 · 接码 · 绑卡",
-            count: products.filter((p) => p.category === "verify").length,
-          },
-          {
-            id: "ACCOUNT",
-            label: "独享账号与工具",
-            count: products.filter((p) => p.category === "account").length,
-          },
-        ].map((cat) => {
-          const active = categoryFilter === cat.id;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => {
-                soundFX.play("tap");
-                setCategoryFilter(cat.id);
-              }}
-              className={`px-4 py-2 rounded-full text-xs sm:text-[13px] font-medium transition-all duration-300 cursor-pointer flex items-center gap-2 border ${
-                active
-                  ? "bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] border-transparent shadow-sm font-semibold"
-                  : "bg-[var(--bg-elevated)] text-[var(--ink-2)] hover:text-[var(--ink)] border-[var(--rule)] hover:border-[var(--rule-strong)]"
-              }`}
-            >
-              <span>{cat.label}</span>
-              <span
-                className={`text-[11px] px-1.5 py-0.2 rounded-full tabular-nums ${
-                  active ? "bg-black/15 text-current" : "bg-[var(--bg-subtle)] text-[var(--ink-3)]"
-                }`}
-              >
-                {cat.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 买手馆级聚光灯商品矩阵 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-        {filteredProducts.map((p, idx) => {
-          const originalNum = parseFloat(p.originalPrice?.replace(/[^\d.]/g, "") || "0");
-          const priceNum = parseFloat(p.price);
-          const savings = originalNum > priceNum ? Math.round(originalNum - priceNum) : 0;
-          const isSoldOut = p.available === false || p.stockStatus === "暂时缺货";
-          const visual = getBrandVisual(p);
-          const BrandIcon = visual.Icon;
-
-          return (
-            <SpotlightCard
-              key={p.id}
-              delayMs={Math.min(idx * 45, 360)}
-              spotlightColor={visual.spotlight}
-              featured={Boolean(p.isPopular && !isSoldOut)}
-              className={`group p-6 sm:p-7 ${isSoldOut ? "opacity-60" : ""}`}
-            >
-              <div>
-                {/* 卡片顶部：苏哲 v4 风格品牌色彩图标块 + 状态徽章 */}
-                <div className="flex items-start justify-between gap-3 mb-5">
-                  <div
-                    className="w-12 h-12 rounded-[16px] flex items-center justify-center border border-[var(--rule)] transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-105"
-                    style={{
-                      background: visual.tileBg,
-                      color: visual.tileColor,
-                    }}
-                  >
-                    <BrandIcon className="w-5 h-5" />
-                  </div>
-
-                  <div className="flex flex-col items-end gap-1.5">
-                    <span
-                      className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium border ${
-                        p.isPopular
-                          ? "border-[var(--clay)]/35 bg-[var(--clay)]/10 text-[var(--clay)] font-semibold"
-                          : "border-[var(--rule)] bg-[var(--bg-subtle)] text-[var(--ink-2)]"
-                      }`}
-                    >
-                      {p.badge}
-                    </span>
-                    <span
-                      className={`text-[11px] tabular-nums font-medium ${
-                        isSoldOut
-                          ? "text-rose-400"
-                          : p.stockStatus === "库存紧张"
-                          ? "text-amber-500"
-                          : "text-emerald-500"
-                      }`}
-                    >
-                      ● {p.stockStatus}
-                      {typeof p.stock === "number" && p.stock > 0 ? ` · 余 ${p.stock}` : ""}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 标题与副标题 */}
-                <div>
-                  <h3 className="text-[17px] sm:text-[18.5px] font-semibold text-[var(--ink)] tracking-tight leading-snug">
-                    {p.title}
-                  </h3>
-                  <p className="text-xs text-[var(--ink-3)] mt-1">{p.sub}</p>
-                </div>
-
-                {/* 价格排版 */}
-                <div className="my-5 pb-5 border-b border-[var(--rule)]">
-                  <div className="flex items-baseline gap-1.5 tabular-nums">
-                    <span className="text-sm font-medium text-[var(--ink-2)]">¥</span>
-                    <span className="text-[34px] sm:text-[38px] font-bold text-[var(--ink)] tracking-tight leading-none">
-                      {p.price}
-                    </span>
-                    {p.originalPrice ? (
-                      <span className="line-through text-xs text-[var(--ink-3)] ml-1">
-                        ¥{p.originalPrice.replace(/[^\d.]/g, "")}
-                      </span>
-                    ) : null}
-                    {savings > 0 ? (
-                      <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-[var(--clay)]/12 text-[var(--clay)] font-semibold ml-1">
-                        立省 ¥{savings}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-[12.5px] text-[var(--ink-2)] mt-3 leading-relaxed">
-                    {p.description}
-                  </p>
-                </div>
-
-                {/* 精简优雅的亮点列表 */}
-                <ul className="space-y-2.5 mb-7">
-                  {p.features.slice(0, 4).map((feat, fIdx) => (
-                    <li key={fIdx} className="flex items-start gap-2.5 text-[12.5px] text-[var(--ink-2)]">
-                      <span className="w-4 h-4 rounded-full bg-emerald-500/12 text-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check className="w-2.5 h-2.5 stroke-[2.6]" />
-                      </span>
-                      <span className="leading-snug">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* 底部购买按钮 */}
-              <div className="space-y-2.5 pt-2">
-                <button
-                  type="button"
-                  disabled={isSoldOut}
-                  onClick={() => openProductSheet(p)}
-                  className={`w-full h-11 sm:h-12 px-4 rounded-2xl text-[13.5px] font-semibold transition-all flex items-center justify-center gap-2 ${
-                    isSoldOut
-                      ? "bg-[var(--bg-subtle)] text-[var(--ink-3)] cursor-not-allowed"
-                      : p.isPopular
-                      ? "ql-shimmer-btn bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-md hover:opacity-95 active:scale-[0.98] cursor-pointer"
-                      : "bg-[var(--bg-subtle)] hover:bg-[var(--btn-primary-bg)] text-[var(--ink)] hover:text-[var(--btn-primary-fg)] border border-[var(--rule-strong)] hover:border-transparent active:scale-[0.98] cursor-pointer"
-                  }`}
-                >
-                  <span>{isSoldOut ? "上游正在补货" : "立即选购"}</span>
-                  {!isSoldOut ? <ArrowRight className="w-4 h-4" /> : null}
-                </button>
-
-                <div className="flex items-center justify-between text-[11px] text-[var(--ink-3)] px-1">
-                  <span>{p.period}</span>
-                  <span>{p.requiresActivation ? "站内一键自助开通" : "付款核销即刻提取"}</span>
-                </div>
-              </div>
-            </SpotlightCard>
-          );
-        })}
-      </div>
-
-      {/* 底部买手馆三大承诺条 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
-        {[
-          {
-            icon: ShieldCheck,
-            title: "官方正版渠道直连",
-            desc: "实时同步上游库存，一人一卡正规结算，绝不混用劣质黑卡",
-          },
-          {
-            icon: Zap,
-            title: "7 合 1 零密码优雅开通",
-            desc: "粘贴卡密自动匹配专属向导，前置免费体检不扣次数",
-          },
-          {
-            icon: MessageCircle,
-            title: "云端加密保险柜存证",
-            desc: "所有订单与卡密持久留档，即使关闭网页也可随时一键找回",
-          },
-        ].map((item, i) => {
-          const Icon = item.icon;
-          return (
-            <div
-              key={i}
-              className="p-5 rounded-3xl border border-[var(--rule)] bg-[var(--bg-elevated)] flex items-start gap-3.5"
-            >
-              <div className="w-9 h-9 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] flex items-center justify-center text-[var(--clay)] flex-shrink-0">
-                <Icon className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-[var(--ink)] block">{item.title}</span>
-                <span className="text-xs text-[var(--ink-3)] leading-relaxed mt-0.5 block">
-                  {item.desc}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 };

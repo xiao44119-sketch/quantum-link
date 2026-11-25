@@ -1,89 +1,102 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   QuantumLink V3 · 纸上星屿与曜石极光双美学设计系统
-   融合苏哲 v4 艺术画册质感 × Finn 数字岛屿温度 × Apple/Linear 微物理动效
+   QuantumLink V4 · 冷冽流光黑钛 (Cold Titanium) × 冰川雾白 (Glacier Mist)
+   Linear / Vercel / Raycast 级几何排版、镜面折射毛玻璃与 3D 粒子景深美学
    ========================================================================== */
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0c0d10;
-  --bg-elevated: rgba(22, 24, 30, 0.78);
-  --bg-card: rgba(20, 22, 28, 0.76);
-  --bg-card-hover: rgba(26, 29, 38, 0.9);
-  --bg-subtle: rgba(255, 255, 255, 0.035);
-  --bg-field: rgba(10, 11, 15, 0.72);
-  --nav-glass: rgba(14, 15, 20, 0.76);
+  --bg: #05060b;
+  --bg-elevated: rgba(13, 17, 28, 0.78);
+  --bg-card: rgba(12, 16, 26, 0.62);
+  --bg-card-hover: rgba(17, 23, 38, 0.84);
+  --bg-subtle: rgba(255, 255, 255, 0.038);
+  --bg-field: rgba(8, 11, 19, 0.78);
+  --nav-glass: rgba(7, 9, 16, 0.72);
 
-  --ink: #f5f3ec;
-  --ink-2: #c5c2b8;
-  --ink-3: #8a877d;
-  --ink-inverse: #111110;
+  --ink: #f8fafc;
+  --ink-2: #94a3b8;
+  --ink-3: #64748b;
+  --ink-inverse: #06080f;
 
-  --rule: rgba(245, 243, 236, 0.085);
-  --rule-strong: rgba(245, 243, 236, 0.18);
+  --rule: rgba(255, 255, 255, 0.08);
+  --rule-strong: rgba(255, 255, 255, 0.17);
   --line: var(--rule);
   --line-strong: var(--rule-strong);
 
-  --clay: #e27b58;
-  --champagne: #e6be8a;
-  --holo: #e6be8a;
-  --warm: #e27b58;
-  --fg: #f5f3ec;
-  --fg-muted: #9a968c;
+  /* 全局主强调色：冷冽冰川青与星云蓝紫 */
+  --clay: #38bdf8;
+  --champagne: #818cf8;
+  --holo: #38bdf8;
+  --warm: #818cf8;
+  --fg: #f8fafc;
+  --fg-muted: #94a3b8;
 
-  --btn-primary-bg: #f5f3ec;
-  --btn-primary-fg: #121210;
+  --btn-primary-bg: #f8fafc;
+  --btn-primary-fg: #060913;
   --btn-primary-hover: #ffffff;
 
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.045) inset, 0 18px 42px -18px rgba(0, 0, 0, 0.65);
-  --shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.09) inset, 0 28px 60px -20px rgba(0, 0, 0, 0.8);
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.07) inset,
+    0 20px 48px -20px rgba(0, 0, 0, 0.78);
+  --shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 28px 64px -18px rgba(8, 145, 178, 0.22),
+    0 28px 60px -22px rgba(0, 0, 0, 0.88);
 
-  --serif: "Noto Serif SC", "Source Serif 4", "Songti SC", "STSong", "Iowan Old Style", Georgia, serif;
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --serif: var(--sans);
   --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.42, 0.64, 1);
 }
 
+html[data-theme="light"],
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f2ea;
-  --bg-elevated: rgba(252, 251, 248, 0.88);
-  --bg-card: rgba(255, 255, 255, 0.86);
-  --bg-card-hover: #ffffff;
-  --bg-subtle: rgba(31, 30, 27, 0.04);
+  --bg: #f5f7fb;
+  --bg-elevated: rgba(255, 255, 255, 0.86);
+  --bg-card: rgba(255, 255, 255, 0.78);
+  --bg-card-hover: rgba(255, 255, 255, 0.96);
+  --bg-subtle: rgba(15, 23, 42, 0.04);
   --bg-field: #ffffff;
-  --nav-glass: rgba(245, 242, 234, 0.82);
+  --nav-glass: rgba(245, 247, 251, 0.8);
 
-  --ink: #1b1a17;
-  --ink-2: #57544d;
-  --ink-3: #8a867d;
-  --ink-inverse: #faf8f3;
+  --ink: #090d16;
+  --ink-2: #475569;
+  --ink-3: #64748b;
+  --ink-inverse: #f8fafc;
 
-  --rule: rgba(31, 30, 27, 0.09);
-  --rule-strong: rgba(31, 30, 27, 0.2);
+  --rule: rgba(15, 23, 42, 0.08);
+  --rule-strong: rgba(15, 23, 42, 0.16);
   --line: var(--rule);
   --line-strong: var(--rule-strong);
 
-  --clay: #d96543;
-  --champagne: #b87d32;
-  --holo: #2f6f55;
-  --warm: #d96543;
-  --fg: #1b1a17;
-  --fg-muted: #6e6a61;
+  --clay: #0284c7;
+  --champagne: #4f46e5;
+  --holo: #0284c7;
+  --warm: #4f46e5;
+  --fg: #090d16;
+  --fg-muted: #475569;
 
-  --btn-primary-bg: #1b1a17;
-  --btn-primary-fg: #faf8f3;
+  --btn-primary-bg: #090d16;
+  --btn-primary-fg: #f8fafc;
   --btn-primary-hover: #000000;
 
-  --shadow-card: 0 1px 2px rgba(31, 30, 27, 0.04), 0 14px 32px -16px rgba(31, 30, 27, 0.12);
-  --shadow-hover: 0 2px 6px rgba(31, 30, 27, 0.06), 0 26px 54px -20px rgba(31, 30, 27, 0.2);
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 14px 36px -16px rgba(15, 23, 42, 0.09);
+  --shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 1) inset,
+    0 24px 52px -18px rgba(2, 132, 199, 0.16),
+    0 20px 44px -20px rgba(15, 23, 42, 0.14);
 }
 
 html {
+  background-color: var(--bg);
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
@@ -98,54 +111,67 @@ body {
   transition: background-color 0.45s var(--ease-out-expo), color 0.35s var(--ease-out-expo);
 }
 
-/* 细腻胶片纸纹噪点层（苏哲 v4 同款微肌理） */
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.032;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+/* Linear / Vercel 同款金属银白高光大标题 */
+.ql-metallic-title {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 52%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme="light"] .ql-metallic-title {
+  background: linear-gradient(180deg, #090d16 0%, #1e293b 60%, #475569 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ql-aurora-highlight {
+  background: linear-gradient(100deg, #38bdf8 0%, #818cf8 55%, #c084fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme="light"] .ql-aurora-highlight {
+  background: linear-gradient(100deg, #0284c7 0%, #4f46e5 55%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* ==================== 进站编舞关键帧动画 ==================== */
 
-/* 1. 顶部极光序幕进度线 */
 @keyframes curtainLine {
   0% { transform: scaleX(0); opacity: 1; }
   75% { transform: scaleX(1); opacity: 1; }
   100% { transform: scaleX(1); opacity: 0; }
 }
 .ql-curtain-bar {
-  transform-origin: left center;
-  animation: curtainLine 1.15s var(--ease-out-expo) forwards;
+  transform-origin: center;
+  animation: curtainLine 1.35s var(--ease-out-expo) forwards;
 }
 
-/* 2. 苏哲同款高定字词模糊微倾揭幕 */
 @keyframes charBlurReveal {
   0% {
     opacity: 0;
-    transform: translateY(0.42em) rotate(2.5deg) scale(0.97);
-    filter: blur(10px);
+    transform: translateY(18px) scale(0.96);
+    filter: blur(12px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) rotate(0deg) scale(1);
+    transform: translateY(0) scale(1);
     filter: blur(0);
   }
 }
 .ql-word-reveal {
   display: inline-block;
-  animation: charBlurReveal 0.88s var(--ease-out-expo) backwards;
+  animation: charBlurReveal 0.95s var(--ease-out-expo) backwards;
 }
 
-/* 3. 模块与卡片错峰丝滑浮升 */
 @keyframes qlRise {
   0% {
     opacity: 0;
-    transform: translateY(22px) scale(0.985);
-    filter: blur(5px);
+    transform: translateY(24px) scale(0.98);
+    filter: blur(8px);
   }
   100% {
     opacity: 1;
@@ -154,28 +180,25 @@ body::after {
   }
 }
 .ql-rise {
-  animation: qlRise 0.78s var(--ease-out-expo) backwards;
+  animation: qlRise 0.85s var(--ease-out-expo) backwards;
 }
 
-/* 4. 弹簧气泡弹出（打勾徽章 / 状态点） */
 @keyframes springPop {
-  0% { transform: scale(0); opacity: 0; }
+  0% { transform: scale(0.85); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 .ql-pop {
-  animation: springPop 0.48s var(--ease-spring) backwards;
+  animation: springPop 0.42s var(--ease-spring) backwards;
 }
 
-/* 5. 呼吸水波纹光环 */
 @keyframes haloPing {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(226, 123, 88, 0.45); }
-  50% { box-shadow: 0 0 0 7px rgba(226, 123, 88, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5); }
+  50% { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0); }
 }
 .ql-halo-dot {
-  animation: haloPing 2.6s ease-in-out infinite;
+  animation: haloPing 2.5s ease-in-out infinite;
 }
 
-/* 6. 丝绸流光扫掠按钮 */
 @keyframes shimmerGlide {
   0% { transform: translateX(-120%) skewX(-18deg); }
   100% { transform: translateX(240%) skewX(-18deg); }
@@ -192,7 +215,7 @@ body::after {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.28),
+    rgba(255, 255, 255, 0.32),
     transparent
   );
   transform: translateX(-120%) skewX(-18deg);
@@ -202,16 +225,16 @@ body::after {
   animation: shimmerGlide 0.85s var(--ease-out-expo);
 }
 
-/* ==================== 高定卡片与面板表面 ==================== */
+/* ==================== 黑钛高透琉璃表面 ==================== */
 
 .ql-card {
   background: var(--bg-card);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(20px) saturate(135%);
-  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
   transition:
-    transform 0.42s var(--ease-spring),
+    transform 0.28s var(--ease-out-expo),
     border-color 0.3s var(--ease-out-expo),
     box-shadow 0.35s var(--ease-out-expo),
     background-color 0.3s var(--ease-out-expo);
@@ -224,18 +247,18 @@ body::after {
 }
 
 .ql-card-featured {
-  border-color: rgba(230, 190, 138, 0.36);
+  border-color: rgba(56, 189, 248, 0.28);
 }
 [data-theme="light"] .ql-card-featured {
-  border-color: rgba(217, 101, 67, 0.36);
+  border-color: rgba(2, 132, 199, 0.26);
 }
 
 .ql-panel {
   background: var(--bg-elevated);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border-radius: 28px;
 }
 
@@ -252,22 +275,23 @@ body::after {
 .ql-input:focus {
   outline: none;
   border-color: var(--clay);
-  box-shadow: 0 0 0 4px rgba(226, 123, 88, 0.16);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
 }
 
-/* 兼容后台与弹窗既有类名并柔化质感 */
 .glass-card {
   background: var(--bg-elevated);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .signal-dot {
   animation: haloPing 2.4s ease-in-out infinite;
 }
+/* 将旧衬线类名统一映射为紧凑现代几何展示字 */
 .font-serif-editorial {
-  font-family: var(--serif);
+  font-family: var(--sans);
+  letter-spacing: -0.03em;
 }
 .tabular-nums {
   font-variant-numeric: tabular-nums;
