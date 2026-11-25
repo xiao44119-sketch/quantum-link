@@ -108,6 +108,11 @@ export interface ProductOverrideConfig {
 
 export interface StoreContact {
   wechat: string;
+  whatsapp?: string;
+  usdtTrc20?: string;
+  usdExchangeRate?: number;
+  externalTradeName?: string;
+  externalTradeUrl?: string;
   qrCodeImage?: string;
   alipayQrImage?: string;
   wechatGroupQr?: string;
@@ -132,6 +137,8 @@ export interface EPayConfig {
 
 export interface MobileNotifyConfig {
   enabled?: boolean;
+  qqEmail?: string;
+  qqSmtpPass?: string;
   pushplusToken?: string;
   barkKey?: string;
   serverChanKey?: string;

@@ -15,18 +15,21 @@ import {
 import { TicketModal } from "./TicketModal";
 import { DeliveredItem, RetailOrderRecord, TaskRecord } from "@/lib/types";
 import { soundFX } from "@/lib/tactile-feedback";
+import { formatPriceByLocale, Locale } from "@/lib/i18n";
 
 interface Props {
   onGoToRedeem?: (cdk: string) => void;
+  locale?: Locale;
 }
 
-export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
+export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem, locale = "zh" }) => {
   const [queryCode, setQueryCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [traceData, setTraceData] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isTicketOpen, setIsTicketOpen] = useState(false);
+  const isEn = locale === "en";
 
   const handleCopy = (text: string, key: string) => {
     soundFX.play("tap");
@@ -49,13 +52,17 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       const resp = await fetch(`/api/trace?q=${encodeURIComponent(q)}`);
       const data = await resp.json();
       if (!resp.ok || !data.success) {
-        setErrorMsg(data.detail || data.error || "未查询到匹配的订单、卡密或激活记录");
+        setErrorMsg(
+          isEn
+            ? "No matching order, key, or activation record found."
+            : data.detail || data.error || "未查询到匹配的订单、卡密或激活记录"
+        );
       } else {
         soundFX.play("switch");
         setTraceData(data);
       }
     } catch {
-      setErrorMsg("网络查询异常，请稍后重试");
+      setErrorMsg(isEn ? "Network error, please try again." : "网络查询异常，请稍后重试");
     } finally {
       setLoading(false);
     }
@@ -66,6 +73,7 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       ? order.delivered_items
       : [];
     const isDelivered = items.length > 0 && order.payment_status === "paid";
+    const priceDisplay = formatPriceByLocale(order.retail_total_fen / 100, locale);
 
     return (
       <div
@@ -74,7 +82,9 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--rule)] pb-3">
           <div>
-            <span className="text-[11px] text-[var(--ink-3)] block">订单编号</span>
+            <span className="text-[11px] text-[var(--ink-3)] block">
+              {isEn ? "Order ID" : "订单编号"}
+            </span>
             <span className="font-mono text-sm font-bold text-[var(--ink)]">{order.order_id}</span>
           </div>
           <span
@@ -85,30 +95,43 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
             }`}
           >
             {isDelivered
-              ? "● 已完成发卡"
+              ? isEn
+                ? "● Delivered"
+                : "● 已完成发卡"
               : order.payment_status === "awaiting_confirm"
-              ? "● 待站长确认收款"
-              : `● ${order.payment_status}`}
+                ? isEn
+                  ? "● Verifying Payment"
+                  : "● 待站长确认收款"
+                : `● ${order.payment_status}`}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)]">
-            <span className="text-[var(--ink-3)] block text-[11px]">选购套餐</span>
+            <span className="text-[var(--ink-3)] block text-[11px]">
+              {isEn ? "Item" : "选购套餐"}
+            </span>
             <span className="text-[var(--ink)] font-semibold mt-0.5 block">
               {order.product_name} {order.quantity > 1 ? `× ${order.quantity}` : ""}
             </span>
           </div>
           <div className="p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)]">
-            <span className="text-[var(--ink-3)] block text-[11px]">实付金额</span>
+            <span className="text-[var(--ink-3)] block text-[11px]">
+              {isEn ? "Amount" : "实付金额"}
+            </span>
             <span className="text-[var(--clay)] font-bold tabular-nums mt-0.5 block">
-              ¥{(order.retail_total_fen / 100).toFixed(2)}
+              {priceDisplay.symbol}
+              {priceDisplay.amount} {isEn ? "USD" : ""}
             </span>
           </div>
           <div className="p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)]">
-            <span className="text-[var(--ink-3)] block text-[11px]">创建时间</span>
+            <span className="text-[var(--ink-3)] block text-[11px]">
+              {isEn ? "Created At" : "创建时间"}
+            </span>
             <span className="text-[var(--ink-2)] tabular-nums mt-0.5 block">
-              {new Date(order.created_at).toLocaleString("zh-CN", { hour12: false })}
+              {new Date(order.created_at).toLocaleString(isEn ? "en-US" : "zh-CN", {
+                hour12: false,
+              })}
             </span>
           </div>
         </div>
@@ -124,15 +147,23 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-[var(--ink)]">
-                      {it.title || "交付卡密 / 凭证"}
+                      {isEn ? `Delivered Key #${idx + 1}` : it.title || "交付卡密 / 凭证"}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleCopy(val, `${order.order_id}_${idx}`)}
-                      className="px-3 py-1 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[11px] font-semibold inline-flex items-center gap-1"
+                      className="px-3 py-1 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
                     >
                       <Copy className="w-3 h-3" />
-                      <span>{copiedKey === `${order.order_id}_${idx}` ? "已复制" : "复制"}</span>
+                      <span>
+                        {copiedKey === `${order.order_id}_${idx}`
+                          ? isEn
+                            ? "Copied"
+                            : "已复制"
+                          : isEn
+                            ? "Copy"
+                            : "复制"}
+                      </span>
                     </button>
                   </div>
                   <pre className="p-3 rounded-xl bg-[var(--bg-subtle)] font-mono font-semibold text-[var(--ink)] whitespace-pre-wrap break-all">
@@ -148,7 +179,11 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 onClick={() => onGoToRedeem(items[0]?.copy_text || items[0]?.value || "")}
                 className="ql-shimmer-btn w-full h-11 rounded-2xl bg-[var(--clay)] text-white font-semibold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>带入卡密 · 一键前往自助开通台</span>
+                <span>
+                  {isEn
+                    ? "Load Key into 7-in-1 Activation Studio"
+                    : "带入卡密 · 一键前往自助开通台"}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : null}
@@ -162,7 +197,9 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
     <div className="ql-rise p-5 rounded-2xl border border-[var(--rule-strong)] bg-[var(--bg-subtle)] space-y-3 text-xs">
       <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
         <div>
-          <span className="text-[11px] text-[var(--ink-3)] block">任务编号</span>
+          <span className="text-[11px] text-[var(--ink-3)] block">
+            {isEn ? "Task ID" : "任务编号"}
+          </span>
           <span className="font-mono text-sm font-bold text-[var(--ink)]">{task.task_id}</span>
         </div>
         <span
@@ -170,21 +207,33 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
             task.success
               ? "border-emerald-500/35 bg-emerald-500/12 text-emerald-500"
               : task.finished
-              ? "border-rose-500/35 bg-rose-500/12 text-rose-400"
-              : "border-[var(--rule-strong)] bg-[var(--bg-field)] text-[var(--ink)]"
+                ? "border-rose-500/35 bg-rose-500/12 text-rose-400"
+                : "border-[var(--rule-strong)] bg-[var(--bg-field)] text-[var(--ink)]"
           }`}
         >
-          {task.success ? "● 已成功生效" : task.finished ? "● 未完成" : `● 进行中 (${task.progress}%)`}
+          {task.success
+            ? isEn
+              ? "● Completed"
+              : "● 已成功生效"
+            : task.finished
+              ? isEn
+                ? "● Failed"
+                : "● 未完成"
+              : `● ${task.progress}%`}
         </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)]">
-          <span className="text-[var(--ink-3)] block text-[11px]">产品通道</span>
+          <span className="text-[var(--ink-3)] block text-[11px]">
+            {isEn ? "Product Line" : "产品通道"}
+          </span>
           <span className="text-[var(--clay)] font-semibold mt-0.5 block">{task.product_name}</span>
         </div>
         <div className="p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)]">
-          <span className="text-[var(--ink-3)] block text-[11px]">绑定账号</span>
+          <span className="text-[var(--ink-3)] block text-[11px]">
+            {isEn ? "Target Account" : "绑定账号"}
+          </span>
           <span className="text-[var(--ink)] break-all mt-0.5 block">{task.target_email || "—"}</span>
         </div>
       </div>
@@ -196,15 +245,11 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
           rel="noreferrer"
           className="w-full py-3 rounded-xl bg-emerald-600 text-white font-semibold inline-flex items-center justify-center gap-1.5"
         >
-          <span>打开 Google 官方学生优惠领取链接</span>
+          <span>
+            {isEn ? "Open Official Google Student Claim Link" : "打开 Google 官方学生优惠领取链接"}
+          </span>
           <ExternalLink className="w-4 h-4" />
         </a>
-      ) : null}
-
-      {task.disposal_hint ? (
-        <div className="p-3 rounded-xl bg-[var(--bg-field)] border border-[var(--rule)] text-[var(--ink-2)]">
-          建议：{task.disposal_hint}
-        </div>
       ) : null}
     </div>
   );
@@ -220,14 +265,20 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
       <div className="ql-panel p-6 sm:p-9 space-y-6">
         <form onSubmit={handleSearch} className="space-y-3">
           <label className="text-sm font-medium text-[var(--ink)] block">
-            输入订单号、预留微信号或卡密
+            {isEn
+              ? "Enter Order ID, Contact Handle (Email/WhatsApp/WeChat), or Activation Key"
+              : "输入订单号、预留微信号或卡密"}
           </label>
           <div className="flex flex-col sm:flex-row gap-2.5">
             <input
               type="text"
               value={queryCode}
               onChange={(e) => setQueryCode(e.target.value)}
-              placeholder="例如 QL-261124-XXXX / 微信号 / PLS-XXXX / GSTU-XXXX..."
+              placeholder={
+                isEn
+                  ? "e.g. QL-261125-XXXX / Email / PLS-XXXX / GSTU-XXXX..."
+                  : "例如 QL-261125-XXXX / 微信号 / PLS-XXXX / GSTU-XXXX..."
+              }
               className="ql-input flex-1 h-12 px-4 font-mono text-sm"
               required
             />
@@ -241,7 +292,7 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
               ) : (
                 <Search className="w-4 h-4" />
               )}
-              <span>立即检索</span>
+              <span>{isEn ? "Search Vault" : "立即检索"}</span>
             </button>
           </div>
         </form>
@@ -254,14 +305,18 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
             </div>
 
             <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <span className="text-[var(--ink-2)]">付款待核销或需要人工协助对账？</span>
+              <span className="text-[var(--ink-2)]">
+                {isEn
+                  ? "Need manual payment verification or order assistance?"
+                  : "付款待核销或需要人工协助对账？"}
+              </span>
               <button
                 type="button"
                 onClick={() => setIsTicketOpen(true)}
                 className="px-4 py-2 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Headphones className="w-3.5 h-3.5" />
-                <span>提交售后工单</span>
+                <span>{isEn ? "Open Support Ticket" : "提交售后工单"}</span>
               </button>
             </div>
           </div>
@@ -274,7 +329,9 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
         {traceData?.kind === "retail_order_list" && Array.isArray(traceData.orders) ? (
           <div className="space-y-4">
             <div className="text-xs text-[var(--ink-2)]">
-              为您检索到 {traceData.orders.length} 笔关联订单：
+              {isEn
+                ? `Found ${traceData.orders.length} matching order(s):`
+                : `为您检索到 ${traceData.orders.length} 笔关联订单：`}
             </div>
             {traceData.orders.map((o: RetailOrderRecord) => renderOrderCard(o))}
           </div>
@@ -291,29 +348,14 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-[var(--ink)] flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span>上游实时核验结果 ({traceData.upstream.line?.toUpperCase()})</span>
+                    <span>
+                      {isEn ? "Live Upstream Key Status" : "上游实时核验结果"} (
+                      {traceData.upstream.line?.toUpperCase()})
+                    </span>
                   </span>
                   <span className="font-mono text-[var(--ink-3)]">{traceData.card_code_masked}</span>
                 </div>
                 <p className="text-[var(--ink-2)] leading-relaxed">{traceData.upstream.message}</p>
-
-                {traceData.upstream.bound_email ? (
-                  <p className="text-[var(--clay)] font-medium">
-                    绑定续升账号：{traceData.upstream.bound_email}
-                  </p>
-                ) : null}
-
-                {traceData.upstream.redirect_url ? (
-                  <a
-                    href={traceData.upstream.redirect_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold"
-                  >
-                    <span>打开学生优惠领取链接</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : null}
 
                 {traceData.upstream.redeemable && onGoToRedeem ? (
                   <button
@@ -321,7 +363,11 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
                     onClick={() => onGoToRedeem(traceData.card_code_raw)}
                     className="px-5 py-2.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>该卡密可用 · 一键带入自助开通</span>
+                    <span>
+                      {isEn
+                        ? "Key Valid · Open in Activation Studio"
+                        : "该卡密可用 · 一键带入自助开通"}
+                    </span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 ) : null}
@@ -329,21 +375,6 @@ export const OrderQueryCabin: React.FC<Props> = ({ onGoToRedeem }) => {
             ) : null}
 
             {traceData.latest_task ? renderTaskSummary(traceData.latest_task) : null}
-
-            <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] flex items-center justify-between">
-              <span className="text-[var(--ink-2)] flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>有疑问可随时联系人工客服处理</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsTicketOpen(true)}
-                className="px-3.5 py-1.5 rounded-full border border-[var(--rule-strong)] text-[var(--ink)] font-medium inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Headphones className="w-3.5 h-3.5" />
-                <span>提交工单</span>
-              </button>
-            </div>
           </div>
         ) : null}
       </div>

@@ -35,17 +35,21 @@ import { SessionHelperModal } from "./SessionHelperModal";
 import { SessionPrecheckCard } from "./SessionPrecheckCard";
 import { TicketModal } from "./TicketModal";
 import { soundFX } from "@/lib/tactile-feedback";
+import { Locale } from "@/lib/i18n";
 
 interface Props {
   presetPrefix?: string;
   onTaskChange?: (count: number) => void;
   onLineChange?: (line: ActivationLine) => void;
+  locale?: Locale;
 }
 
 const LINE_TABS: Array<{
   id: ActivationLine;
   label: string;
+  labelEn: string;
   sub: string;
+  subEn: string;
   tileBg: string;
   tileColor: string;
   Icon: any;
@@ -54,7 +58,9 @@ const LINE_TABS: Array<{
   {
     id: "chatgpt",
     label: "ChatGPT 订阅",
+    labelEn: "ChatGPT Direct",
     sub: "Plus · Pro 10x / 20x / 50x",
+    subEn: "Plus · Pro 10x / 20x / 50x",
     tileBg: "rgba(16, 185, 129, 0.18)",
     tileColor: "#34D399",
     Icon: Bot,
@@ -63,7 +69,9 @@ const LINE_TABS: Array<{
   {
     id: "sheerid",
     label: "Gemini 学生认证",
+    labelEn: "Gemini Student",
     sub: "GSTU- · 免密验证链接",
+    subEn: "GSTU- · SheerID URL Only",
     tileBg: "rgba(129, 140, 248, 0.2)",
     tileColor: "#818CF8",
     Icon: GraduationCap,
@@ -72,7 +80,9 @@ const LINE_TABS: Array<{
   {
     id: "codex_sms",
     label: "Codex 在线接码",
+    labelEn: "Overseas OTP",
     sub: "SMS- · 实时收信换号",
+    subEn: "SMS- · Live Web OTP",
     tileBg: "rgba(56, 189, 248, 0.18)",
     tileColor: "#38BDF8",
     Icon: Smartphone,
@@ -81,7 +91,9 @@ const LINE_TABS: Array<{
   {
     id: "grok",
     label: "Grok 订阅",
+    labelEn: "xAI SuperGrok",
     sub: "GROK- · 四档免费预检",
+    subEn: "GROK- · Cookie Redeem",
     tileBg: "rgba(226, 232, 240, 0.16)",
     tileColor: "#E2E8F0",
     Icon: Sparkles,
@@ -90,7 +102,9 @@ const LINE_TABS: Array<{
   {
     id: "tg_premium",
     label: "Telegram 会员",
+    labelEn: "TG Premium",
     sub: "TGPREM- · @用户名直充",
+    subEn: "TGPREM- · @Username Gift",
     tileBg: "rgba(14, 165, 233, 0.2)",
     tileColor: "#38BDF8",
     Icon: AtSign,
@@ -99,7 +113,9 @@ const LINE_TABS: Array<{
   {
     id: "muse_boost",
     label: "Muse 邀请助力",
+    labelEn: "Muse +1B Boost",
     sub: "MB- · 单次+10亿 Token",
+    subEn: "MB- · +1B Token Quota",
     tileBg: "rgba(168, 85, 247, 0.2)",
     tileColor: "#C084FC",
     Icon: Rocket,
@@ -108,7 +124,9 @@ const LINE_TABS: Array<{
   {
     id: "gemini_pro",
     label: "Gemini Pro 季卡",
+    labelEn: "Gemini Pro 3M",
     sub: "G-3MON- · 3个月独享",
+    subEn: "G-3MON- · 3M Private",
     tileBg: "rgba(139, 92, 246, 0.2)",
     tileColor: "#A78BFA",
     Icon: Mail,
@@ -120,7 +138,9 @@ export const FulfillmentConsole: React.FC<Props> = ({
   presetPrefix,
   onTaskChange,
   onLineChange,
+  locale = "zh",
 }) => {
+  const isEn = locale === "en";
   const [cardCode, setCardCode] = useState("");
   const [selectedLine, setSelectedLine] = useState<ActivationLine>("chatgpt");
   const [manualLineOverride, setManualLineOverride] = useState(false);
@@ -420,10 +440,10 @@ export const FulfillmentConsole: React.FC<Props> = ({
 
               <span className="min-w-0 flex-1">
                 <span className="text-[14px] font-semibold text-[var(--ink)] block truncate">
-                  {tab.label}
+                  {isEn ? tab.labelEn : tab.label}
                 </span>
                 <span className="text-[11.5px] text-[var(--ink-3)] block truncate mt-0.5">
-                  {tab.sub}
+                  {isEn ? tab.subEn : tab.sub}
                 </span>
               </span>
 
@@ -444,10 +464,12 @@ export const FulfillmentConsole: React.FC<Props> = ({
           <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4 mb-6">
             <div>
               <h2 className="font-serif-editorial text-lg sm:text-xl font-semibold text-[var(--ink)]">
-                填写激活信息
+                {isEn ? "Activation Credentials" : "填写激活信息"}
               </h2>
               <p className="text-xs text-[var(--ink-3)] mt-0.5">
-                输入卡密后系统会自动匹配对应套餐，前置预检不消耗卡密次数
+                {isEn
+                  ? "Auto-detects tier from key prefix · Free pre-check never consumes quota"
+                  : "输入卡密后系统会自动匹配对应套餐，前置预检不消耗卡密次数"}
               </p>
             </div>
             {matchedProduct ? (
@@ -470,7 +492,7 @@ export const FulfillmentConsole: React.FC<Props> = ({
                 <span className="w-5 h-5 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-xs font-bold inline-flex items-center justify-center">
                   1
                 </span>
-                <span>您的激活卡密</span>
+                <span>{isEn ? "Your Activation Key" : "您的激活卡密"}</span>
               </label>
 
               <div className="flex flex-col sm:flex-row gap-2.5">
@@ -481,7 +503,11 @@ export const FulfillmentConsole: React.FC<Props> = ({
                     setManualLineOverride(false);
                     setCardCode(e.target.value);
                   }}
-                  placeholder="粘贴 PLS- / P10X- / GSTU- / SMS- / GROK- / TGPREM- / MB- 卡密..."
+                  placeholder={
+                    isEn
+                      ? "Paste PLS- / P10X- / GSTU- / SMS- / GROK- / TGPREM- / MB- key..."
+                      : "粘贴 PLS- / P10X- / GSTU- / SMS- / GROK- / TGPREM- / MB- 卡密..."
+                  }
                   className="ql-input flex-1 h-12 px-4 font-mono text-sm uppercase"
                   required
                 />
@@ -496,7 +522,7 @@ export const FulfillmentConsole: React.FC<Props> = ({
                   ) : (
                     <ShieldCheck className="w-4 h-4 text-[var(--clay)]" />
                   )}
-                  <span>免费预检卡密</span>
+                  <span>{isEn ? "Free Pre-Check" : "免费预检卡密"}</span>
                 </button>
               </div>
 
@@ -734,17 +760,21 @@ export const FulfillmentConsole: React.FC<Props> = ({
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>正在与官方网关安全核验（最坏约 60s）...</span>
+                  <span>
+                    {isEn
+                      ? "Provisioning via Official Gateway (~30-60s)..."
+                      : "正在与官方网关安全核验（最坏约 60s）..."}
+                  </span>
                 </>
               ) : selectedLine === "codex_sms" ? (
                 <>
                   <Smartphone className="w-4 h-4" />
-                  <span>获取专属海外接码号码</span>
+                  <span>{isEn ? "Request Overseas OTP Number" : "获取专属海外接码号码"}</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>立即提交自动开通</span>
+                  <span>{isEn ? "Submit & Activate Now" : "立即提交自动开通"}</span>
                 </>
               )}
             </button>
@@ -758,7 +788,7 @@ export const FulfillmentConsole: React.FC<Props> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 ql-halo-dot" />
                 <h3 className="font-serif-editorial text-base sm:text-lg font-semibold text-[var(--ink)]">
-                  实时进度面板
+                  {isEn ? "Live Telemetry" : "实时进度面板"}
                 </h3>
               </div>
               {activeTask ? (
@@ -770,7 +800,7 @@ export const FulfillmentConsole: React.FC<Props> = ({
                   }}
                   className="text-xs text-[var(--ink-3)] hover:text-[var(--ink)] inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> 重置新任务
+                  <RotateCcw className="w-3.5 h-3.5" /> {isEn ? "Reset" : "重置新任务"}
                 </button>
               ) : null}
             </div>
@@ -781,9 +811,13 @@ export const FulfillmentConsole: React.FC<Props> = ({
                   <Radio className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[var(--ink)]">等待提交开通任务</p>
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {isEn ? "Awaiting Provisioning Task" : "等待提交开通任务"}
+                  </p>
                   <p className="text-xs text-[var(--ink-3)] mt-1.5 max-w-[240px] leading-relaxed">
-                    提交后将在此实时同步进度、接收短信验证码或弹出学生优惠领取按钮
+                    {isEn
+                      ? "Live status, SMS OTP codes, and Google student claim links appear here in real time."
+                      : "提交后将在此实时同步进度、接收短信验证码或弹出学生优惠领取按钮"}
                   </p>
                 </div>
               </div>

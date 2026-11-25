@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 import { getVaultStoreConfig } from "./cloud-vault";
 import { MobileNotifyConfig, RetailOrderRecord } from "./types";
 
@@ -8,17 +9,11 @@ function getSigningSecret(): string {
   return `${vaultSec}::${adminSec}::quantum_approve_v1`;
 }
 
-/**
- * 为指定订单生成防篡改 HMAC-SHA256 手机免登核销签名
- */
 export function signOrderApproveToken(orderId: string, retailTotalFen: number): string {
   const payload = `ql_approve_v1|${orderId}|${retailTotalFen}`;
   return crypto.createHmac("sha256", getSigningSecret()).update(payload).digest("hex");
 }
 
-/**
- * 常量时间校验手机核销签名，彻底杜绝暴力猜解与伪造
- */
 export function verifyOrderApproveToken(
   orderId: string,
   retailTotalFen: number,
@@ -41,6 +36,16 @@ function normalizeOrigin(rawOrigin?: string): string {
   return (process.env.NEXT_PUBLIC_SITE_URL || "https://card.finnlink.xyz").replace(/\/+$/, "");
 }
 
+function resolveSmtpHost(email: string): { host: string; port: number } {
+  const lower = email.toLowerCase();
+  if (lower.endsWith("@163.com")) return { host: "smtp.163.com", port: 465 };
+  if (lower.endsWith("@126.com")) return { host: "smtp.126.com", port: 465 };
+  if (lower.endsWith("@gmail.com")) return { host: "smtp.gmail.com", port: 465 };
+  if (lower.endsWith("@feishu.cn")) return { host: "smtp.feishu.cn", port: 465 };
+  // 默认支持 @qq.com 与 @foxmail.com（完美触发微信官方「QQ邮箱提醒」弹窗）
+  return { host: "smtp.qq.com", port: 465 };
+}
+
 async function dispatchToChannels(
   notify: MobileNotifyConfig,
   params: {
@@ -54,39 +59,136 @@ async function dispatchToChannels(
   const errors: string[] = [];
   const tasks: Array<Promise<void>> = [];
 
+  const htmlCard = `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;max-width:460px;margin:0 auto;background:#0b0f19;color:#f8fafc;padding:22px;border-radius:18px;border:1px solid rgba(56,189,248,0.25);">
+  <div style="font-size:11px;color:#38bdf8;letter-spacing:1.5px;margin-bottom:6px;font-weight:700;">QUANTUMLINK · 收款核销提醒</div>
+  <div style="font-size:28px;font-weight:800;color:#34d399;margin-bottom:14px;">¥${params.amountText}</div>
+  <div style="background:#131a2a;padding:13px 15px;border-radius:12px;font-size:13px;line-height:1.8;color:#e2e8f0;margin-bottom:18px;">
+    ${params.summaryLines.map((l) => `<div>${l}</div>`).join("")}
+  </div>
+  <a href="${params.approveUrl}" style="display:block;text-align:center;background:#10b981;color:#04130d;font-weight:800;font-size:15px;padding:14px 16px;border-radius:12px;text-decoration:none;">
+    👉 核实已到账 · 点此 1 秒自动发卡
+  </a>
+  <div style="font-size:11px;color:#94a3b8;margin-top:12px;text-align:center;">
+    安全提示：请先确认微信/支付宝已收到该笔款项，再点击上方绿色按钮发卡
+  </div>
+</div>`.trim();
+
+  // 通道 1（首选 0 元免实名）：QQ 邮箱 SMTP -> 微信官方「QQ邮箱提醒」原生秒弹窗
+  const qqEmail = notify.qqEmail?.trim();
+  const qqSmtpPass = notify.qqSmtpPass?.replace(/\s+/g, "").trim();
+  if (qqEmail && qqSmtpPass) {
+    tasks.push(
+      (async () => {
+        const { host, port } = resolveSmtpHost(qqEmail);
+        const transporter = nodemailer.createTransport({
+          host,
+          port,
+          secure: true,
+          auth: {
+            user: qqEmail,
+            pass: qqSmtpPass,
+          },
+          connectionTimeout: 8000,
+          greetingTimeout: 8000,
+          socketTimeout: 10000,
+        });
+
+        await transporter.sendMail({
+          from: `"骁清算力馆收银台" <${qqEmail}>`,
+          to: qqEmail,
+          subject: params.title,
+          html: htmlCard,
+          text: `${params.title}\n${params.summaryLines.join("\n")}\n\n一键免登录发卡链接：${params.approveUrl}`,
+        });
+        sent.push("QQ邮箱（微信提醒）");
+      })().catch((e) => {
+        errors.push(`QQ邮箱SMTP: ${e?.message || "连接失败，请检查邮箱地址与16位授权码"}`);
+      })
+    );
+  }
+
+  // 通道 2：群机器人 Webhook（兼容飞书 / 钉钉 / 企业微信）
+  const webhookUrl = notify.webhookUrl?.trim();
+  if (webhookUrl && webhookUrl.startsWith("http")) {
+    tasks.push(
+      (async () => {
+        const isFeishu = webhookUrl.includes("feishu.cn") || webhookUrl.includes("larksuite.com");
+        const payload = isFeishu
+          ? {
+              msg_type: "interactive",
+              card: {
+                header: {
+                  title: { tag: "plain_text", content: params.title },
+                  template: "green",
+                },
+                elements: [
+                  {
+                    tag: "div",
+                    text: {
+                      tag: "lark_md",
+                      content: params.summaryLines.join("\n"),
+                    },
+                  },
+                  {
+                    tag: "action",
+                    actions: [
+                      {
+                        tag: "button",
+                        text: { tag: "plain_text", content: "👉 核实已收款 · 1秒自动发卡" },
+                        type: "primary",
+                        url: params.approveUrl,
+                      },
+                    ],
+                  },
+                ],
+              },
+            }
+          : {
+              msgtype: "markdown",
+              markdown: {
+                title: params.title,
+                content: `**${params.title}**\n${params.summaryLines.map((l) => `> ${l}`).join("\n")}\n[👉 点此进入免登一键发卡页](${params.approveUrl})`,
+                text: `**${params.title}**\n\n${params.summaryLines.map((l) => `- ${l}`).join("\n")}\n\n[👉 点此进入免登一键发卡页](${params.approveUrl})`,
+              },
+            };
+
+        const resp = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (resp.ok) {
+          sent.push("群机器人 Webhook");
+        } else {
+          errors.push(`Webhook: HTTP ${resp.status}`);
+        }
+      })().catch((e) => {
+        errors.push(`Webhook: ${e?.message || "请求超时"}`);
+      })
+    );
+  }
+
+  // 通道 3：可选 PushPlus
   const pushplusToken = notify.pushplusToken?.trim();
   if (pushplusToken) {
     tasks.push(
       (async () => {
-        const htmlContent = `
-<div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;background:#0b0f19;color:#f8fafc;padding:20px;border-radius:16px;">
-  <div style="font-size:12px;color:#38bdf8;letter-spacing:1px;margin-bottom:6px;">QUANTUMLINK · 收款核销提醒</div>
-  <div style="font-size:24px;font-weight:800;color:#34d399;margin-bottom:12px;">¥${params.amountText}</div>
-  <div style="background:#131a2a;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.75;color:#cbd5e1;margin-bottom:18px;">
-    ${params.summaryLines.map((l) => `<div>${l}</div>`).join("")}
-  </div>
-  <a href="${params.approveUrl}" style="display:block;text-align:center;background:#10b981;color:#04130d;font-weight:700;font-size:15px;padding:13px 16px;border-radius:12px;text-decoration:none;">
-    👉 核实到账 · 点此 1 秒自动发卡
-  </a>
-  <div style="font-size:11px;color:#64748b;margin-top:10px;text-align:center;">
-    安全提示：请先确认微信/支付宝零钱已收到款项再点击发卡
-  </div>
-</div>`.trim();
-
         const resp = await fetch("https://www.pushplus.plus/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token: pushplusToken,
             title: params.title,
-            content: htmlContent,
+            content: htmlCard,
             template: "html",
           }),
           signal: AbortSignal.timeout(8000),
         });
         const data = await resp.json().catch(() => ({}));
         if (resp.ok && (data.code === 200 || data.code === 0)) {
-          sent.push("微信 PushPlus");
+          sent.push("PushPlus");
         } else {
           errors.push(`PushPlus: ${data.msg || resp.status}`);
         }
@@ -96,6 +198,7 @@ async function dispatchToChannels(
     );
   }
 
+  // 通道 4：可选 Bark / Server酱
   const barkRaw = notify.barkKey?.trim();
   if (barkRaw) {
     tasks.push(
@@ -103,13 +206,12 @@ async function dispatchToChannels(
         const base = barkRaw.startsWith("http")
           ? barkRaw.replace(/\/+$/, "")
           : `https://api.day.app/${encodeURIComponent(barkRaw)}`;
-        const bodyText = `${params.summaryLines.join(" · ")}\n点击通知直接进入 1 秒免登发卡页`;
         const resp = await fetch(base, {
           method: "POST",
           headers: { "Content-Type": "application/json; charset=utf-8" },
           body: JSON.stringify({
             title: params.title,
-            body: bodyText,
+            body: `${params.summaryLines.join(" · ")}\n点击通知直接进入 1 秒免登发卡页`,
             group: "QuantumLink收款",
             sound: "paymentsuccess",
             level: "timeSensitive",
@@ -119,7 +221,7 @@ async function dispatchToChannels(
         });
         const data = await resp.json().catch(() => ({}));
         if (resp.ok && (data.code === 200 || data.message === "success")) {
-          sent.push("iPhone Bark");
+          sent.push("Bark");
         } else {
           errors.push(`Bark: ${data.message || resp.status}`);
         }
@@ -133,18 +235,12 @@ async function dispatchToChannels(
   if (sctKey) {
     tasks.push(
       (async () => {
-        const desp = [
-          `### 待核销金额：¥${params.amountText}`,
-          ...params.summaryLines.map((l) => `- ${l}`),
-          "",
-          `### [👉 点击此处免登录一键确认并自动发卡](${params.approveUrl})`,
-        ].join("\n");
         const resp = await fetch(`https://sctapi.ftqq.com/${encodeURIComponent(sctKey)}.send`, {
           method: "POST",
           headers: { "Content-Type": "application/json;charset=utf-8" },
           body: JSON.stringify({
             title: params.title,
-            desp,
+            desp: `### 待核销 ¥${params.amountText}\n${params.summaryLines.map((l) => `- ${l}`).join("\n")}\n\n### [👉 点此免登一键自动发卡](${params.approveUrl})`,
           }),
           signal: AbortSignal.timeout(8000),
         });
@@ -160,43 +256,10 @@ async function dispatchToChannels(
     );
   }
 
-  const webhookUrl = notify.webhookUrl?.trim();
-  if (webhookUrl && webhookUrl.startsWith("http")) {
-    tasks.push(
-      (async () => {
-        const mdText = [
-          `**${params.title}**`,
-          ...params.summaryLines.map((l) => `> ${l}`),
-          `[👉 点击进入手机免登一键发卡页](${params.approveUrl})`,
-        ].join("\n");
-        const resp = await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            msgtype: "markdown",
-            markdown: { content: mdText, text: mdText, title: params.title },
-            text: { content: `${params.title}\n${params.summaryLines.join("\n")}\n核销发卡: ${params.approveUrl}` },
-          }),
-          signal: AbortSignal.timeout(8000),
-        });
-        if (resp.ok) {
-          sent.push("群机器人 Webhook");
-        } else {
-          errors.push(`Webhook: HTTP ${resp.status}`);
-        }
-      })().catch((e) => {
-        errors.push(`Webhook: ${e?.message || "请求超时"}`);
-      })
-    );
-  }
-
   await Promise.allSettled(tasks);
   return { sent, errors };
 }
 
-/**
- * 顾客点击「我已完成扫码付款」后，自动向站长手机发送带免登一键发卡链接的强提醒
- */
 export async function sendOrderAwaitingConfirmPush(
   order: RetailOrderRecord,
   requestOrigin?: string
@@ -208,10 +271,11 @@ export async function sendOrderAwaitingConfirmPush(
   }
 
   const hasAnyChannel = Boolean(
-    notify.pushplusToken?.trim() ||
+    (notify.qqEmail?.trim() && notify.qqSmtpPass?.trim()) ||
+      notify.webhookUrl?.trim() ||
+      notify.pushplusToken?.trim() ||
       notify.barkKey?.trim() ||
-      notify.serverChanKey?.trim() ||
-      notify.webhookUrl?.trim()
+      notify.serverChanKey?.trim()
   );
   if (!hasAnyChannel) {
     return { sent: [], errors: [] };
@@ -227,33 +291,30 @@ export async function sendOrderAwaitingConfirmPush(
   ).toFixed(2);
 
   return dispatchToChannels(notify, {
-    title: `💰 待核销 ¥${amountText} · ${order.product_name}`,
+    title: `💰 收款核销 ¥${amountText} · ${order.product_name}`,
     amountText,
     summaryLines: [
       `商品：${order.product_name}${order.variant ? ` [${order.variant}]` : ""} × ${order.quantity}`,
-      `单号：${order.order_id}（预计毛利 +¥${profitText}）`,
-      `买家预留：${order.buyer_contact || "未填"}`,
-      `付款备注：${order.payer_note || "买家已点击扫码完成"}`,
+      `单号：${order.order_id}（本单净赚 +¥${profitText}）`,
+      `买家联系：${order.buyer_contact || "未填写"}`,
+      `付款备注：${order.payer_note || "买家已点击完成扫码付款"}`,
     ],
     approveUrl,
   });
 }
 
-/**
- * 后台一键测试手机推送连通性
- */
 export async function sendTestMobilePush(
   notify: MobileNotifyConfig,
   requestOrigin?: string
 ): Promise<{ sent: string[]; errors: string[] }> {
   const origin = normalizeOrigin(requestOrigin);
   return dispatchToChannels(notify, {
-    title: "🔔 QuantumLink 手机秒级发卡通道已连通！",
+    title: "🔔 骁清算力馆 · 微信 QQ邮箱提醒已成功打通！",
     amountText: "35.00",
     summaryLines: [
-      "这是一条来自「骁清 FINN · 数字算力馆」的测试推送",
-      "后续买家扫码点击「我已付款」时，您将立刻收到此类卡片",
-      "点开底部绿色按钮即可 1 秒免登录自动调苏哲发卡！",
+      "恭喜！0 元免实名的手机收款提醒专线已连通",
+      "以后顾客扫码点「我已付款」，您的微信会立刻弹出此卡片",
+      "点开下方绿色大按钮，1 秒免登录自动调苏哲提卡发货！",
     ],
     approveUrl: `${origin}/admin`,
   });

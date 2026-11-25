@@ -67,6 +67,8 @@ export default function AdminPage() {
   const [epay, setEpay] = useState<any>({ url: "", pid: "", key: "" });
   const [notify, setNotify] = useState<any>({
     enabled: true,
+    qqEmail: "",
+    qqSmtpPass: "",
     pushplusToken: "",
     barkKey: "",
     serverChanKey: "",
@@ -1128,73 +1130,48 @@ export default function AdminPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-emerald-300">
-                        ① 推荐：微信 PushPlus Token（安卓/苹果通用）
+                  <div className="md:col-span-2 p-4 rounded-xl bg-emerald-950/20 border border-emerald-400/35 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-bold text-emerald-300 text-xs sm:text-sm">
+                        ★ 首选真·0元免实名方案：QQ 邮箱 + 微信自带「QQ邮箱提醒」（安卓/苹果原生微信秒弹窗）
                       </span>
                       <a
-                        href="https://www.pushplus.plus/push1.html"
+                        href="https://wx.mail.qq.com/"
                         target="_blank"
                         rel="noreferrer"
                         className="text-sky-300 hover:underline inline-flex items-center gap-0.5 text-[11px]"
                       >
-                        30秒免费扫码拿Token <ExternalLink className="w-3 h-3" />
+                        打开 QQ 邮箱网页版拿 16 位授权码 <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
-                    <p className="text-[11px] text-neutral-400 leading-relaxed">
-                      微信扫码登录 pushplus.plus 关注公众号即可复制一串 32 位 Token 粘贴在下方，新单直推微信聊天窗！
+                    <p className="text-[11px] text-neutral-300 leading-relaxed">
+                      ① 微信里搜<strong>「QQ邮箱提醒」</strong>点启用（腾讯官方免费，无需掏 3.9 元认证费、无需给小平台传身份证）；② 登录 <code className="text-sky-300">wx.mail.qq.com</code> → 设置 → 账号 → 开启 <strong>POP3/SMTP 服务</strong>，复制生成的 <strong>16 位字母授权码</strong>（注意不是 QQ 登录密码）填到右侧即可！
                     </p>
-                    <input
-                      type="text"
-                      value={notify.pushplusToken || ""}
-                      onChange={(e) =>
-                        setNotify({ ...notify, enabled: true, pushplusToken: e.target.value })
-                      }
-                      placeholder="粘贴 32 位 PushPlus Token，例如 a1b2c3d4..."
-                      className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2 text-white font-mono"
-                    />
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sky-300">
-                        ② 苹果神器：iPhone Bark 强弹窗 Key（可选）
-                      </span>
-                      <span className="text-[11px] text-neutral-400">App Store 搜「Bark」</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="email"
+                        value={notify.qqEmail || ""}
+                        onChange={(e) =>
+                          setNotify({ ...notify, enabled: true, qqEmail: e.target.value })
+                        }
+                        placeholder="您的 QQ 邮箱，如 12345678@qq.com"
+                        className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2.5 text-white font-mono"
+                      />
+                      <input
+                        type="password"
+                        value={notify.qqSmtpPass || ""}
+                        onChange={(e) =>
+                          setNotify({ ...notify, enabled: true, qqSmtpPass: e.target.value })
+                        }
+                        placeholder="16 位 QQ 邮箱 SMTP 授权码（非QQ密码）"
+                        className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2.5 text-white font-mono"
+                      />
                     </div>
-                    <p className="text-[11px] text-neutral-400 leading-relaxed">
-                      iPhone 下载免费 Bark App，复制里面的设备 Key 或链接填在下方，自带收钱音效且锁屏点击横幅直接跳发卡页！
-                    </p>
-                    <input
-                      type="text"
-                      value={notify.barkKey || ""}
-                      onChange={(e) =>
-                        setNotify({ ...notify, enabled: true, barkKey: e.target.value })
-                      }
-                      placeholder="粘贴 Bark Key 或 https://api.day.app/xxxx"
-                      className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2 text-white font-mono"
-                    />
                   </div>
 
                   <div>
-                    <label className="text-neutral-400 block mb-1">
-                      可选：Server酱 SendKey (SCT...)
-                    </label>
-                    <input
-                      type="text"
-                      value={notify.serverChanKey || ""}
-                      onChange={(e) =>
-                        setNotify({ ...notify, enabled: true, serverChanKey: e.target.value })
-                      }
-                      placeholder="如使用 Server酱可填 SCT..."
-                      className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-neutral-400 block mb-1">
-                      可选：企业微信 / 飞书 / 钉钉群机器人 Webhook
+                    <label className="text-neutral-300 font-semibold block mb-1">
+                      备选 0 元方案：飞书 / 钉钉 / 企业微信群机器人 Webhook
                     </label>
                     <input
                       type="text"
@@ -1202,7 +1179,27 @@ export default function AdminPage() {
                       onChange={(e) =>
                         setNotify({ ...notify, enabled: true, webhookUrl: e.target.value })
                       }
-                      placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..."
+                      placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
+                      className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      其他可选：Server酱 SendKey / PushPlus Token
+                    </label>
+                    <input
+                      type="text"
+                      value={notify.serverChanKey || notify.pushplusToken || ""}
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        if (val.startsWith("SCT")) {
+                          setNotify({ ...notify, enabled: true, serverChanKey: val });
+                        } else {
+                          setNotify({ ...notify, enabled: true, pushplusToken: val });
+                        }
+                      }}
+                      placeholder="可选：SCT... 或其他 Token"
                       className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white font-mono"
                     />
                   </div>
@@ -1334,15 +1331,70 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {/* 联系方式与沙盒开关 */}
+                {/* 联系方式、海外外贸独立站联动与沙盒开关 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-3 border-t border-white/[0.08]">
                   <div>
-                    <label className="text-neutral-400 block mb-1">客服微信号</label>
+                    <label className="text-neutral-400 block mb-1">国内客服微信号</label>
                     <input
                       type="text"
                       value={contact.wechat || ""}
                       onChange={(e) => setContact({ ...contact, wechat: e.target.value })}
                       className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      海外英文版 WhatsApp 号码（带国家码，如 8618300425760）
+                    </label>
+                    <input
+                      type="text"
+                      value={contact.whatsapp || ""}
+                      onChange={(e) => setContact({ ...contact, whatsapp: e.target.value })}
+                      placeholder="8618300425760"
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      英文版 (/en) 美金换算汇率（默认 7.12）
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={contact.usdExchangeRate ?? 7.12}
+                      onChange={(e) =>
+                        setContact({
+                          ...contact,
+                          usdExchangeRate: parseFloat(e.target.value) || 7.12,
+                        })
+                      }
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      可选：海外买家 USDT (TRC20) 收款地址
+                    </label>
+                    <input
+                      type="text"
+                      value={contact.usdtTrc20 || ""}
+                      onChange={(e) => setContact({ ...contact, usdtTrc20: e.target.value })}
+                      placeholder="选填：填后英文收银台将直接显示一键复制 USDT 地址"
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-neutral-400 block mb-1">
+                      外贸主站联动链接（SEO 双向互链，后续建好外贸站可填）
+                    </label>
+                    <input
+                      type="url"
+                      value={contact.externalTradeUrl || ""}
+                      onChange={(e) =>
+                        setContact({ ...contact, externalTradeUrl: e.target.value })
+                      }
+                      placeholder="例如 https://trade.finnlink.xyz"
+                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white font-mono"
                     />
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/10">
@@ -1357,15 +1409,6 @@ export default function AdminPage() {
                       checked={sandboxDemoEnabled}
                       onChange={(e) => setSandboxDemoEnabled(e.target.checked)}
                       className="w-4 h-4 accent-amber-400 cursor-pointer"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-neutral-400 block mb-1">商城顶部公告栏</label>
-                    <input
-                      type="text"
-                      value={contact.noticeText || ""}
-                      onChange={(e) => setContact({ ...contact, noticeText: e.target.value })}
-                      className="w-full bg-black/50 border border-white/10 rounded px-3 py-2 text-white"
                     />
                   </div>
                 </div>

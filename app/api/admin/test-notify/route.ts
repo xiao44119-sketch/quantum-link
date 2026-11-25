@@ -22,17 +22,19 @@ export async function POST(req: NextRequest) {
   }
 
   const hasAny = Boolean(
-    notifyCfg?.pushplusToken?.trim() ||
+    (notifyCfg?.qqEmail?.trim() && notifyCfg?.qqSmtpPass?.trim()) ||
+      notifyCfg?.webhookUrl?.trim() ||
+      notifyCfg?.pushplusToken?.trim() ||
       notifyCfg?.barkKey?.trim() ||
-      notifyCfg?.serverChanKey?.trim() ||
-      notifyCfg?.webhookUrl?.trim()
+      notifyCfg?.serverChanKey?.trim()
   );
 
   if (!hasAny) {
     return NextResponse.json(
       {
         success: false,
-        error: "请先在上方任选填入一个推送凭证（如微信 PushPlus Token 或 iPhone Bark Key）",
+        error:
+          "请先填写「QQ邮箱地址 + 16位SMTP授权码」（0元免实名直推微信），或填写飞书/钉钉群机器人 Webhook",
       },
       { status: 400 }
     );
