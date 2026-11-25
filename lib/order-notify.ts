@@ -75,7 +75,10 @@ async function dispatchToChannels(
 </div>`.trim();
 
   // 通道 1（首选 0 元免实名）：QQ 邮箱 SMTP -> 微信官方「QQ邮箱提醒」原生秒弹窗
-  const qqEmail = notify.qqEmail?.trim();
+  const rawEmailInput = notify.qqEmail?.trim() || "";
+  const qqEmail = /^\d{5,13}$/.test(rawEmailInput)
+    ? `${rawEmailInput}@qq.com`
+    : rawEmailInput;
   const qqSmtpPass = notify.qqSmtpPass?.replace(/\s+/g, "").trim();
   if (qqEmail && qqSmtpPass) {
     tasks.push(

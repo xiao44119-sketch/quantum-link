@@ -438,7 +438,10 @@ export default function AdminPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#06090e] text-[#f0f7f7] font-mono relative selection:bg-cyan-500/20 selection:text-cyan-200">
+    <div
+      data-theme="dark"
+      className="min-h-screen bg-[#06090e] text-[#f0f7f7] font-mono relative selection:bg-cyan-500/20 selection:text-cyan-200"
+    >
       <div className="ambient-glow" />
       <div className="screen-lines" />
       <div className="hud-grid" />
@@ -1149,12 +1152,18 @@ export default function AdminPage() {
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <input
-                        type="email"
+                        type="text"
                         value={notify.qqEmail || ""}
                         onChange={(e) =>
                           setNotify({ ...notify, enabled: true, qqEmail: e.target.value })
                         }
-                        placeholder="您的 QQ 邮箱，如 12345678@qq.com"
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (/^\d{5,13}$/.test(v)) {
+                            setNotify({ ...notify, enabled: true, qqEmail: `${v}@qq.com` });
+                          }
+                        }}
+                        placeholder="您的 QQ 邮箱或纯 QQ 号，如 12345678@qq.com"
                         className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2.5 text-white font-mono"
                       />
                       <input
@@ -1193,10 +1202,12 @@ export default function AdminPage() {
                       value={notify.serverChanKey || notify.pushplusToken || ""}
                       onChange={(e) => {
                         const val = e.target.value.trim();
-                        if (val.startsWith("SCT")) {
-                          setNotify({ ...notify, enabled: true, serverChanKey: val });
+                        if (!val) {
+                          setNotify({ ...notify, serverChanKey: "", pushplusToken: "" });
+                        } else if (val.startsWith("SCT")) {
+                          setNotify({ ...notify, enabled: true, serverChanKey: val, pushplusToken: "" });
                         } else {
-                          setNotify({ ...notify, enabled: true, pushplusToken: val });
+                          setNotify({ ...notify, enabled: true, pushplusToken: val, serverChanKey: "" });
                         }
                       }}
                       placeholder="可选：SCT... 或其他 Token"
