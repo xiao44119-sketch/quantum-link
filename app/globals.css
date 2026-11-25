@@ -1,53 +1,53 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   QuantumLink V4 · 冷冽流光黑钛 (Cold Titanium) × 冰川雾白 (Glacier Mist)
-   Linear / Vercel / Raycast 级几何排版、镜面折射毛玻璃与 3D 粒子景深美学
+   QuantumLink V5 · VidMuse 电影影棚暗调 (#0F1113 × #FB5123) × Sand.ai 暖纸画册 (#F9F8F6)
+   极致克制留白、摄影机取景框秩序、无噪点锐利排版与双语跨境旗舰质感
    ========================================================================== */
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #05060b;
-  --bg-elevated: rgba(13, 17, 28, 0.78);
-  --bg-card: rgba(12, 16, 26, 0.62);
-  --bg-card-hover: rgba(17, 23, 38, 0.84);
-  --bg-subtle: rgba(255, 255, 255, 0.038);
-  --bg-field: rgba(8, 11, 19, 0.78);
-  --nav-glass: rgba(7, 9, 16, 0.72);
+  --bg: #0f1113;
+  --bg-elevated: rgba(20, 22, 26, 0.86);
+  --bg-card: rgba(22, 24, 29, 0.78);
+  --bg-card-hover: rgba(30, 33, 40, 0.92);
+  --bg-subtle: rgba(255, 255, 255, 0.04);
+  --bg-field: rgba(14, 16, 19, 0.88);
+  --nav-glass: rgba(15, 17, 19, 0.78);
 
-  --ink: #f8fafc;
-  --ink-2: #94a3b8;
-  --ink-3: #64748b;
-  --ink-inverse: #06080f;
+  --ink: #ffffff;
+  --ink-2: #a3a8b2;
+  --ink-3: #6c727e;
+  --ink-inverse: #0f1113;
 
-  --rule: rgba(255, 255, 255, 0.08);
-  --rule-strong: rgba(255, 255, 255, 0.17);
+  --rule: rgba(255, 255, 255, 0.085);
+  --rule-strong: rgba(255, 255, 255, 0.16);
   --line: var(--rule);
   --line-strong: var(--rule-strong);
 
-  /* 全局主强调色：冷冽冰川青与星云蓝紫 */
-  --clay: #38bdf8;
-  --champagne: #818cf8;
-  --holo: #38bdf8;
-  --warm: #818cf8;
-  --fg: #f8fafc;
-  --fg-muted: #94a3b8;
+  /* VidMuse 招牌朱砂熔岩橙单点强调 + 暖金点缀 */
+  --clay: #fb5123;
+  --vermilion: #fb5123;
+  --champagne: #e4b274;
+  --holo: #fb5123;
+  --warm: #e4b274;
+  --fg: #ffffff;
+  --fg-muted: #a3a8b2;
 
-  --btn-primary-bg: #f8fafc;
-  --btn-primary-fg: #060913;
-  --btn-primary-hover: #ffffff;
+  --btn-primary-bg: #ffffff;
+  --btn-primary-fg: #0f1113;
+  --btn-primary-hover: #f3f4f6;
 
   --shadow-card:
-    0 1px 0 rgba(255, 255, 255, 0.07) inset,
-    0 20px 48px -20px rgba(0, 0, 0, 0.78);
+    0 1px 0 rgba(255, 255, 255, 0.055) inset,
+    0 24px 54px -26px rgba(0, 0, 0, 0.82);
   --shadow-hover:
-    0 1px 0 rgba(255, 255, 255, 0.14) inset,
-    0 28px 64px -18px rgba(8, 145, 178, 0.22),
-    0 28px 60px -22px rgba(0, 0, 0, 0.88);
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 32px 68px -24px rgba(0, 0, 0, 0.92);
 
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
-  --serif: var(--sans);
+  --serif: "Noto Serif SC", "Source Serif 4", "Songti SC", Georgia, serif;
   --mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -57,42 +57,43 @@
 html[data-theme="light"],
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f7fb;
-  --bg-elevated: rgba(255, 255, 255, 0.86);
-  --bg-card: rgba(255, 255, 255, 0.78);
-  --bg-card-hover: rgba(255, 255, 255, 0.96);
-  --bg-subtle: rgba(15, 23, 42, 0.04);
+  /* 精确对标 Sand.ai 官网 (#F9F8F6) 暖米画册纸白 */
+  --bg: #f9f8f6;
+  --bg-elevated: rgba(255, 255, 255, 0.92);
+  --bg-card: rgba(255, 255, 255, 0.86);
+  --bg-card-hover: #ffffff;
+  --bg-subtle: rgba(20, 20, 20, 0.038);
   --bg-field: #ffffff;
-  --nav-glass: rgba(245, 247, 251, 0.8);
+  --nav-glass: rgba(249, 248, 246, 0.84);
 
-  --ink: #090d16;
-  --ink-2: #475569;
-  --ink-3: #64748b;
-  --ink-inverse: #f8fafc;
+  --ink: #141414;
+  --ink-2: #525252;
+  --ink-3: #858585;
+  --ink-inverse: #ffffff;
 
-  --rule: rgba(15, 23, 42, 0.08);
-  --rule-strong: rgba(15, 23, 42, 0.16);
+  --rule: rgba(20, 20, 20, 0.08);
+  --rule-strong: rgba(20, 20, 20, 0.16);
   --line: var(--rule);
   --line-strong: var(--rule-strong);
 
-  --clay: #0284c7;
-  --champagne: #4f46e5;
-  --holo: #0284c7;
-  --warm: #4f46e5;
-  --fg: #090d16;
-  --fg-muted: #475569;
+  --clay: #e6461c;
+  --vermilion: #e6461c;
+  --champagne: #c68d46;
+  --holo: #e6461c;
+  --warm: #c68d46;
+  --fg: #141414;
+  --fg-muted: #525252;
 
-  --btn-primary-bg: #090d16;
-  --btn-primary-fg: #f8fafc;
+  --btn-primary-bg: #141414;
+  --btn-primary-fg: #ffffff;
   --btn-primary-hover: #000000;
 
   --shadow-card:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 14px 36px -16px rgba(15, 23, 42, 0.09);
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 18px 40px -22px rgba(20, 20, 20, 0.09);
   --shadow-hover:
     0 1px 0 rgba(255, 255, 255, 1) inset,
-    0 24px 52px -18px rgba(2, 132, 199, 0.16),
-    0 20px 44px -20px rgba(15, 23, 42, 0.14);
+    0 24px 52px -20px rgba(20, 20, 20, 0.14);
 }
 
 html {
@@ -108,37 +109,27 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.45s var(--ease-out-expo), color 0.35s var(--ease-out-expo);
 }
 
-/* Linear / Vercel 同款金属银白高光大标题 */
+/* 干净锐利的影棚标题渐变（告别杂乱霓虹） */
 .ql-metallic-title {
-  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 52%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-[data-theme="light"] .ql-metallic-title {
-  background: linear-gradient(180deg, #090d16 0%, #1e293b 60%, #475569 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink);
 }
 
 .ql-aurora-highlight {
-  background: linear-gradient(100deg, #38bdf8 0%, #818cf8 55%, #c084fc 100%);
+  background: linear-gradient(96deg, #fb5123 0%, #f59e0b 55%, #e4b274 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 [data-theme="light"] .ql-aurora-highlight {
-  background: linear-gradient(100deg, #0284c7 0%, #4f46e5 55%, #7c3aed 100%);
+  background: linear-gradient(96deg, #e6461c 0%, #c85c1b 60%, #9a5b13 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* ==================== 进站编舞关键帧动画 ==================== */
+/* ==================== 摄影机序幕与克制动效 ==================== */
 
 @keyframes curtainLine {
   0% { transform: scaleX(0); opacity: 1; }
@@ -146,57 +137,57 @@ body {
   100% { transform: scaleX(1); opacity: 0; }
 }
 .ql-curtain-bar {
-  transform-origin: center;
-  animation: curtainLine 1.35s var(--ease-out-expo) forwards;
+  transform-origin: left center;
+  animation: curtainLine 1.25s var(--ease-out-expo) forwards;
 }
 
 @keyframes charBlurReveal {
   0% {
     opacity: 0;
-    transform: translateY(18px) scale(0.96);
-    filter: blur(12px);
+    transform: translateY(16px);
+    filter: blur(8px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     filter: blur(0);
   }
 }
 .ql-word-reveal {
   display: inline-block;
-  animation: charBlurReveal 0.95s var(--ease-out-expo) backwards;
+  animation: charBlurReveal 0.85s var(--ease-out-expo) backwards;
 }
 
 @keyframes qlRise {
   0% {
     opacity: 0;
-    transform: translateY(24px) scale(0.98);
-    filter: blur(8px);
+    transform: translateY(18px);
+    filter: blur(5px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     filter: blur(0);
   }
 }
 .ql-rise {
-  animation: qlRise 0.85s var(--ease-out-expo) backwards;
+  animation: qlRise 0.78s var(--ease-out-expo) backwards;
 }
 
 @keyframes springPop {
-  0% { transform: scale(0.85); opacity: 0; }
+  0% { transform: scale(0.92); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 .ql-pop {
-  animation: springPop 0.42s var(--ease-spring) backwards;
+  animation: springPop 0.36s var(--ease-out-expo) backwards;
 }
 
 @keyframes haloPing {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5); }
-  50% { box-shadow: 0 0 0 7px rgba(56, 189, 248, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 81, 35, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(251, 81, 35, 0); }
 }
 .ql-halo-dot {
-  animation: haloPing 2.5s ease-in-out infinite;
+  animation: haloPing 2.4s ease-in-out infinite;
 }
 
 @keyframes shimmerGlide {
@@ -215,59 +206,59 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.32),
+    rgba(255, 255, 255, 0.28),
     transparent
   );
   transform: translateX(-120%) skewX(-18deg);
   pointer-events: none;
 }
 .ql-shimmer-btn:hover::after {
-  animation: shimmerGlide 0.85s var(--ease-out-expo);
+  animation: shimmerGlide 0.8s var(--ease-out-expo);
 }
 
-/* ==================== 黑钛高透琉璃表面 ==================== */
+/* ==================== 影棚卡片与高透面板 ==================== */
 
 .ql-card {
   background: var(--bg-card);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(24px) saturate(145%);
-  -webkit-backdrop-filter: blur(24px) saturate(145%);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
   transition:
     transform 0.28s var(--ease-out-expo),
-    border-color 0.3s var(--ease-out-expo),
-    box-shadow 0.35s var(--ease-out-expo),
-    background-color 0.3s var(--ease-out-expo);
+    border-color 0.28s var(--ease-out-expo),
+    box-shadow 0.32s var(--ease-out-expo),
+    background-color 0.28s var(--ease-out-expo);
 }
 .ql-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: var(--rule-strong);
   box-shadow: var(--shadow-hover);
   background: var(--bg-card-hover);
 }
 
 .ql-card-featured {
-  border-color: rgba(56, 189, 248, 0.28);
+  border-color: rgba(251, 81, 35, 0.24);
 }
 [data-theme="light"] .ql-card-featured {
-  border-color: rgba(2, 132, 199, 0.26);
+  border-color: rgba(230, 70, 28, 0.24);
 }
 
 .ql-panel {
   background: var(--bg-elevated);
   border: 1px solid var(--rule);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-  border-radius: 28px;
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+  border-radius: 24px;
 }
 
 .ql-input {
   background: var(--bg-field);
   color: var(--ink);
   border: 1px solid var(--rule-strong);
-  border-radius: 14px;
-  transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+  border-radius: 12px;
+  transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.28s var(--ease-out-expo);
 }
 .ql-input::placeholder {
   color: var(--ink-3);
@@ -275,7 +266,36 @@ body {
 .ql-input:focus {
   outline: none;
   border-color: var(--clay);
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 0 3px rgba(251, 81, 35, 0.14);
+}
+
+/* VidMuse 同款电影机取景框直角标尺 */
+.vm-viewfinder {
+  position: relative;
+}
+.vm-viewfinder::before,
+.vm-viewfinder::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  border-color: var(--vermilion);
+  transition: opacity 0.25s ease;
+}
+.vm-viewfinder::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1.5px solid var(--vermilion);
+  border-left: 1.5px solid var(--vermilion);
+  border-top-left-radius: 4px;
+}
+.vm-viewfinder::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1.5px solid var(--vermilion);
+  border-right: 1.5px solid var(--vermilion);
+  border-bottom-right-radius: 4px;
 }
 
 .glass-card {
@@ -288,10 +308,9 @@ body {
 .signal-dot {
   animation: haloPing 2.4s ease-in-out infinite;
 }
-/* 将旧衬线类名统一映射为紧凑现代几何展示字 */
 .font-serif-editorial {
-  font-family: var(--sans);
-  letter-spacing: -0.03em;
+  font-family: var(--serif);
+  letter-spacing: -0.02em;
 }
 .tabular-nums {
   font-variant-numeric: tabular-nums;

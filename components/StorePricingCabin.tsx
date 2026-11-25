@@ -13,15 +13,16 @@ import {
   Loader2,
   ExternalLink,
   Layers,
-  LayoutGrid,
   ShieldCheck,
   MessageSquare,
   Send,
   Globe,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { STORE_PRODUCTS as FALLBACK_PRODUCTS } from "@/config/store-products";
 import { DeliveredItem, StoreContact, StoreProduct } from "@/lib/types";
-import { SpotlightCard } from "./SpotlightCard";
 import { BrandEmblem, BrandHouseKey } from "./BrandEmblems";
 import { soundFX } from "@/lib/tactile-feedback";
 import {
@@ -45,7 +46,7 @@ interface ActiveCheckoutOrder {
   product: StoreProduct;
   variant: string;
   quantity: number;
-  totalAmount: number; // CNY amount returned by backend
+  totalAmount: number;
   expiresIn: number;
   qrImageUrl?: string | null;
   alipayQrUrl?: string | null;
@@ -56,14 +57,16 @@ interface ActiveCheckoutOrder {
 
 interface BrandGalleryGroup {
   key: BrandHouseKey;
+  indexLabel: string;
+  shortNav: string;
+  shortNavEn: string;
   name: string;
   nameEn: string;
   eyebrow: string;
   tagline: string;
   taglineEn: string;
   accentHex: string;
-  spotlightRgba: string;
-  featured?: boolean;
+  stageGrad: string;
   items: StoreProduct[];
 }
 
@@ -77,69 +80,84 @@ function classifyBrandHouse(p: StoreProduct): BrandHouseKey {
   return "creative";
 }
 
-const HOUSE_META: Record<BrandHouseKey, Omit<BrandGalleryGroup, "items">> = {
+const HOUSE_META: Record<BrandHouseKey, Omit<BrandGalleryGroup, "items" | "indexLabel">> = {
   openai: {
     key: "openai",
+    shortNav: "ChatGPT 旗舰",
+    shortNavEn: "ChatGPT Pro",
     name: "ChatGPT 官方旗舰订阅",
     nameEn: "OpenAI ChatGPT Flagship",
     eyebrow: "OPENAI OFFICIAL",
-    tagline: "Plus 零密码代充 · Pro 10x / 20x 满血算力无损直升",
-    taglineEn: "Zero-Password Plus Upgrade · Lossless Pro 10x / 20x Compute Tiers",
+    tagline: "Plus 零密码代充 · Pro 10x / 20x 满血算力无损直升 · 保留全部历史对话",
+    taglineEn: "Zero-Password Plus Direct Upgrade · Lossless Pro 10x / 20x Compute",
     accentHex: "#10B981",
-    spotlightRgba: "rgba(16, 185, 129, 0.19)",
-    featured: true,
+    stageGrad:
+      "radial-gradient(ellipse 85% 75% at 80% 15%, rgba(16, 185, 129, 0.28) 0%, rgba(15, 17, 19, 0) 62%), radial-gradient(ellipse 65% 65% at 12% 85%, rgba(251, 81, 35, 0.14) 0%, rgba(15, 17, 19, 0) 60%)",
   },
   gemini: {
     key: "gemini",
-    name: "Gemini Pro & 学生认证",
+    shortNav: "Gemini 学生认证",
+    shortNavEn: "Gemini & SheerID",
+    name: "Gemini Pro & 学生身份认证",
     nameEn: "Google Gemini & SheerID",
     eyebrow: "GOOGLE AI ECOSYSTEM",
-    tagline: "SheerID 免密链接过审 · Gemini Pro 季卡 · 美区 2FA 谷歌号",
-    taglineEn: "Zero-Password SheerID Student Verify · Gemini Pro · Clean US Gmail",
-    accentHex: "#818CF8",
-    spotlightRgba: "rgba(129, 140, 248, 0.2)",
-    featured: true,
-  },
-  grok: {
-    key: "grok",
-    name: "xAI SuperGrok 订阅",
-    nameEn: "xAI SuperGrok Official",
-    eyebrow: "XAI SUPERGROK",
-    tagline: "深度联网实时搜索与无限制推理 · 免密卡密秒级直充",
-    taglineEn: "Real-Time X DeepSearch & Think Mode · Instant Activation Key",
-    accentHex: "#E2E8F0",
-    spotlightRgba: "rgba(226, 232, 240, 0.16)",
+    tagline: "SheerID 免密链接过审 · Gemini Pro 季卡独享 · 美区 2FA 纯净谷歌号",
+    taglineEn: "Zero-Password SheerID Verification · Gemini Pro 3M · Clean US Gmail",
+    accentHex: "#6366F1",
+    stageGrad:
+      "radial-gradient(ellipse 85% 75% at 82% 18%, rgba(99, 102, 241, 0.3) 0%, rgba(15, 17, 19, 0) 62%), radial-gradient(ellipse 60% 60% at 15% 85%, rgba(56, 189, 248, 0.16) 0%, rgba(15, 17, 19, 0) 60%)",
   },
   card_sms: {
     key: "card_sms",
-    name: "海外绑卡虚拟卡 & 接码",
+    shortNav: "虚拟卡 · 接码",
+    shortNavEn: "Virtual Card & OTP",
+    name: "海外绑卡虚拟卡 & Codex 接码",
     nameEn: "Global Virtual Cards & OTP",
     eyebrow: "VIRTUAL CARD & SMS",
-    tagline: "5 大纯净 BIN 卡头 · 谷歌/OpenAI 试用绑卡与实时短信验证",
-    taglineEn: "5 Clean US/Global BINs for AI Trials · Live Overseas SMS Console",
-    accentHex: "#38BDF8",
-    spotlightRgba: "rgba(56, 189, 248, 0.2)",
-    featured: true,
+    tagline: "5 大纯净 BIN 0月租虚拟卡 · 谷歌/OpenAI 绑卡神器与实时在线接码",
+    taglineEn: "5 Clean US/Global BINs for AI Trials · Live Web Overseas SMS OTP",
+    accentHex: "#FB5123",
+    stageGrad:
+      "radial-gradient(ellipse 85% 75% at 78% 18%, rgba(251, 81, 35, 0.28) 0%, rgba(15, 17, 19, 0) 62%), radial-gradient(ellipse 60% 60% at 18% 85%, rgba(228, 178, 116, 0.18) 0%, rgba(15, 17, 19, 0) 60%)",
+  },
+  grok: {
+    key: "grok",
+    shortNav: "xAI SuperGrok",
+    shortNavEn: "xAI SuperGrok",
+    name: "xAI SuperGrok 官方订阅",
+    nameEn: "xAI SuperGrok Official",
+    eyebrow: "XAI SUPERGROK",
+    tagline: "实时全网 DeepSearch 与深度逻辑推理 · 四档免费预检免密激活",
+    taglineEn: "Real-Time X DeepSearch & Think Mode · Free Eligibility Pre-Check",
+    accentHex: "#E4B274",
+    stageGrad:
+      "radial-gradient(ellipse 85% 75% at 80% 18%, rgba(228, 178, 116, 0.24) 0%, rgba(15, 17, 19, 0) 62%), radial-gradient(ellipse 60% 60% at 15% 85%, rgba(148, 163, 184, 0.16) 0%, rgba(15, 17, 19, 0) 60%)",
   },
   telegram: {
     key: "telegram",
-    name: "Telegram 会员与美区号",
+    shortNav: "Telegram 会员",
+    shortNavEn: "TG Premium",
+    name: "Telegram 官方会员 & 美区号",
     nameEn: "Telegram Premium & US +1",
     eyebrow: "TELEGRAM PREMIUM",
-    tagline: "3 / 6 / 12 个月官方会员 @用户名免登直充 · +1 纯净成品号",
-    taglineEn: "3 / 6 / 12M Official @Username Direct Gift · Clean US (+1) Accounts",
+    tagline: "3 / 6 / 12 个月官方会员 @用户名免登空投 · +1 美区纯净成品号",
+    taglineEn: "3 / 6 / 12M Official @Username Direct Gift · Aged Clean US (+1)",
     accentHex: "#0EA5E9",
-    spotlightRgba: "rgba(14, 165, 233, 0.19)",
+    stageGrad:
+      "radial-gradient(ellipse 85% 75% at 80% 18%, rgba(14, 165, 233, 0.28) 0%, rgba(15, 17, 19, 0) 62%), radial-gradient(ellipse 60% 60% at 15% 85%, rgba(56, 189, 248, 0.14) 0%, rgba(15, 17, 19, 0) 60%)",
   },
   creative: {
     key: "creative",
-    name: "AI 创作与算力加速包",
+    shortNav: "创作与算力包",
+    shortNavEn: "Creator AI Pack",
+    name: "AI 创作与算力加速工具馆",
     nameEn: "Creator AI & Token Boost",
     eyebrow: "CREATOR & TOKEN BOOST",
-    tagline: "Muse 单次 +10亿 Token · ElevenLabs 语音 · Figma 教育版",
+    tagline: "Muse 单次 +10亿 Token · ElevenLabs 多语种配音 · Figma Pro 2年",
     taglineEn: "Muse +1B Tokens · ElevenLabs Multilingual Voice · Figma Pro 2Y",
     accentHex: "#A855F7",
-    spotlightRgba: "rgba(168, 85, 247, 0.19)",
+    stageGrad:
+      "radial-gradient(ellipse 85% 75% at 80% 18%, rgba(168, 85, 247, 0.28) 0%, rgba(15, 17, 19, 0) 62%), radial-gradient(ellipse 60% 60% at 15% 85%, rgba(251, 81, 35, 0.15) 0%, rgba(15, 17, 19, 0) 60%)",
   },
 };
 
@@ -155,7 +173,7 @@ const HOUSE_ORDER: BrandHouseKey[] = [
 function shortTierLabelZh(p: StoreProduct): string {
   const id = p.id.toLowerCase();
   if (id === "gpt_plus_ch2") return "Plus 月卡直充";
-  if (id === "gpt_pro_5x_660") return "Pro 10x 推理版";
+  if (id === "gpt_pro_5x_660") return "Pro 10x 深度版";
   if (id === "gpt_pro_20x_1350") return "Pro 20x 满血版";
   if (id.includes("sheerid")) return "SheerID 学生认证";
   if (id.includes("gemini_pixel")) return "Gemini Pro 季卡";
@@ -192,7 +210,12 @@ export const StorePricingCabin: React.FC<Props> = ({
   });
   const [sandboxDemoEnabled, setSandboxDemoEnabled] = useState(false);
 
-  const [viewMode, setViewMode] = useState<"gallery" | "all">("gallery");
+  // VidMuse 导演台当前选中场景索引 (0..5) 与场景内选中的具体规格 ID
+  const [stageIndex, setStageIndex] = useState<number>(0);
+  const [stageSkuId, setStageSkuId] = useState<string>("gpt_plus_ch2");
+  const [elapsedSec, setElapsedSec] = useState<number>(12);
+
+  // 收银台模态弹窗状态
   const [activeHouseKey, setActiveHouseKey] = useState<BrandHouseKey | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
   const [chosenVariant, setChosenVariant] = useState<string>("");
@@ -228,6 +251,12 @@ export const StorePricingCabin: React.FC<Props> = ({
       .catch(() => {});
   }, []);
 
+  // 左下角 VidMuse 风格极克制影棚时间码跳动
+  useEffect(() => {
+    const t = setInterval(() => setElapsedSec((s) => (s + 1) % 3600), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   const galleryGroups: BrandGalleryGroup[] = useMemo(() => {
     const bucket: Record<BrandHouseKey, StoreProduct[]> = {
       openai: [],
@@ -240,11 +269,56 @@ export const StorePricingCabin: React.FC<Props> = ({
     for (const p of products) {
       bucket[classifyBrandHouse(p)].push(p);
     }
-    return HOUSE_ORDER.map((k) => ({
+    return HOUSE_ORDER.map((k, idx) => ({
       ...HOUSE_META[k],
+      indexLabel: String(idx + 1).padStart(2, "0"),
       items: bucket[k],
     })).filter((g) => g.items.length > 0);
   }, [products]);
+
+  const safeStageIdx = Math.min(stageIndex, Math.max(0, galleryGroups.length - 1));
+  const currentStageGroup = galleryGroups[safeStageIdx] || galleryGroups[0];
+
+  // 当前舞台视窗内选中的具体 SKU
+  const stageSku = useMemo(() => {
+    if (!currentStageGroup) return null;
+    return (
+      currentStageGroup.items.find((i) => i.id === stageSkuId) ||
+      currentStageGroup.items[0] ||
+      null
+    );
+  }, [currentStageGroup, stageSkuId]);
+
+  // 切换品牌馆时同步通知底层 3D 粒子场变换边缘氛围泛光
+  const handleSelectStage = (idx: number) => {
+    const nextIdx = (idx + galleryGroups.length) % galleryGroups.length;
+    soundFX.play("switch");
+    setStageIndex(nextIdx);
+    const grp = galleryGroups[nextIdx];
+    if (grp) {
+      const firstAvail = grp.items.find((i) => (i.stock ?? 1) > 0) || grp.items[0];
+      if (firstAvail) setStageSkuId(firstAvail.id);
+      onHoverAccent?.(grp.accentHex);
+    }
+  };
+
+  // 支持键盘上下方向键切景（致敬 VidMuse 导演台手感）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (selectedProduct) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        handleSelectStage(safeStageIdx + 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        handleSelectStage(safeStageIdx - 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [safeStageIdx, galleryGroups.length, selectedProduct]);
 
   const activeGroup = useMemo(
     () => galleryGroups.find((g) => g.key === activeHouseKey) || null,
@@ -472,237 +546,417 @@ export const StorePricingCabin: React.FC<Props> = ({
     ? localizeProduct(selectedProduct, locale)
     : null;
 
+  const localizedStageSku = stageSku ? localizeProduct(stageSku, locale) : null;
+  const stagePriceDisp = stageSku
+    ? formatPriceByLocale(stageSku.price, locale, usdRate)
+    : null;
+
   const whatsappDigits = (
     contactInfo.whatsapp || `86${contactInfo.wechat || "18300425760"}`
   ).replace(/[^\d]/g, "");
 
   return (
-    <div className="space-y-6 sm:space-y-7">
-      {/* 顶部极简视图控制栏 */}
-      <div
-        style={{ animationDelay: `${entranceBaseDelayMs + 280}ms` }}
-        className="ql-rise flex items-center justify-between gap-3 px-1"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 ql-halo-dot" />
-          <span className="text-xs sm:text-[13px] font-medium text-[var(--ink-2)]">
-            {isEn
-              ? "6 Official AI Suites · Select a Brand House to Choose Your Tier"
-              : "六大官方直连数字馆 · 点选品牌进入面值规格仓"}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            soundFX.play("switch");
-            setViewMode((v) => (v === "gallery" ? "all" : "gallery"));
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--rule)] hover:border-[var(--rule-strong)] bg-[var(--bg-subtle)] text-[11.5px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-all cursor-pointer"
+    <div className="space-y-16 sm:space-y-20">
+      {/* ========================================================================
+          VidMuse × Sand.ai 旗舰级「大画幅电影选景交互台」
+          左侧 70% 弧角黑胶视窗（含实时档位直切 + 底部磨砂控制胶囊）
+          右侧 30% [ 01 / 06 ] 摄影机直角取景框场景轨道
+         ======================================================================== */}
+      {currentStageGroup && stageSku && localizedStageSku && stagePriceDisp ? (
+        <section
+          style={{ animationDelay: `${entranceBaseDelayMs + 280}ms` }}
+          className="ql-rise space-y-5"
         >
-          <LayoutGrid className="w-3.5 h-3.5 text-[var(--clay)]" />
-          <span>
-            {viewMode === "gallery"
-              ? isEn
-                ? `View All ${products.length} SKUs`
-                : `展开全部 ${products.length} 款单品`
-              : isEn
-                ? "Back to Brand Gallery"
-                : "返回极简品牌画廊"}
-          </span>
-        </button>
-      </div>
-
-      {/* ==================== 模式 A：极简 6 大核心品牌画廊大卡 ==================== */}
-      {viewMode === "gallery" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-          {galleryGroups.map((group, idx) => {
-            const minPriceCny = Math.min(
-              ...group.items.map((p) => parseFloat(p.price) || 9999)
-            );
-            const minDisplay = formatPriceByLocale(minPriceCny, locale, usdRate);
-            const totalStock = group.items.reduce(
-              (acc, item) => acc + (typeof item.stock === "number" ? item.stock : 50),
-              0
-            );
-            const soldOut = totalStock <= 0;
-
-            return (
-              <SpotlightCard
-                key={group.key}
-                enableTilt={true}
-                featured={group.featured}
-                spotlightColor={group.spotlightRgba}
-                delayMs={entranceBaseDelayMs + 340 + idx * 65}
-                onClick={() => openHouseDrawer(group)}
-                onMouseEnterCard={() => onHoverAccent?.(group.accentHex)}
-                onMouseLeaveCard={() => onHoverAccent?.(null)}
-                className="group p-6 sm:p-7 cursor-pointer select-none min-h-[278px]"
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7 items-stretch">
+            {/* 左侧 8 列：大画幅电影级展示视窗（深色影棚底，浅色纸面下更具 Sand.ai 画册反差高级感） */}
+            <div
+              key={currentStageGroup.key}
+              className="lg:col-span-8 relative rounded-[26px] sm:rounded-[30px] overflow-hidden border border-white/10 bg-[#121418] text-white shadow-[0_32px_80px_-28px_rgba(0,0,0,0.65)] min-h-[390px] sm:min-h-[420px] flex flex-col justify-between p-5 sm:p-7"
+            >
+              {/* 动态品牌电影棚氛围光晕 + 精密光学同心圆装饰 */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 transition-opacity duration-700"
+                style={{ background: currentStageGroup.stageGrad }}
+              />
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-24 -top-24 w-[420px] h-[420px] opacity-[0.07] text-white"
+                viewBox="0 0 400 400"
+                fill="none"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <BrandEmblem brand={group.key} size="lg" />
+                <circle cx="200" cy="200" r="185" stroke="currentColor" strokeWidth="1" strokeDasharray="4 6" />
+                <circle cx="200" cy="200" r="130" stroke="currentColor" strokeWidth="1" />
+                <circle cx="200" cy="200" r="76" stroke="currentColor" strokeWidth="1" strokeDasharray="2 4" />
+                <line x1="200" y1="0" x2="200" y2="400" stroke="currentColor" strokeWidth="0.6" />
+                <line x1="0" y1="200" x2="400" y2="200" stroke="currentColor" strokeWidth="0.6" />
+              </svg>
 
-                    <div className="flex flex-col items-end gap-1.5">
-                      <span className="text-[10px] font-mono uppercase tracking-[0.14em] px-2.5 py-1 rounded-full border border-[var(--rule-strong)] bg-[var(--bg-subtle)] text-[var(--ink-2)]">
-                        {isEn ? `${group.items.length} Tiers` : `${group.items.length} 款规格可选`}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--ink-3)]">
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            soldOut ? "bg-rose-400" : "bg-emerald-400"
-                          }`}
-                        />
-                        <span>
-                          {soldOut
-                            ? isEn
-                              ? "Restocking"
-                              : "补货中"
-                            : isEn
-                              ? `${totalStock}+ In Stock`
-                              : `实时余量 ${totalStock}+`}
-                        </span>
+              {/* 视窗顶部：品牌高精度徽标 + 实时源头仓状态 */}
+              <div className="relative z-10 flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <BrandEmblem brand={currentStageGroup.key} size="lg" />
+                  <div>
+                    <span
+                      className="text-[10.5px] font-mono tracking-[0.2em] uppercase block"
+                      style={{ color: currentStageGroup.accentHex }}
+                    >
+                      {currentStageGroup.eyebrow}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          typeof stageSku.stock === "number" && stageSku.stock <= 0
+                            ? "bg-amber-400"
+                            : "bg-emerald-400"
+                        }`}
+                      />
+                      <span className="text-xs text-white/70 font-mono">
+                        {typeof stageSku.stock === "number" && stageSku.stock <= 0
+                          ? isEn
+                            ? "RESTOCKING · TRY ANOTHER TIER BELOW"
+                            : "当前规格补货中 · 可切换下方现货档位"
+                          : isEn
+                            ? `LIVE STOCK · ${typeof stageSku.stock === "number" ? stageSku.stock : "99+"} AVAILABLE`
+                            : `官方实时现货 · 余 ${typeof stageSku.stock === "number" ? stageSku.stock : "99+"}`}
                       </span>
                     </div>
                   </div>
+                </div>
 
-                  <div className="mt-6">
-                    <span
-                      className="text-[10.5px] font-mono tracking-[0.18em] uppercase block mb-1.5"
-                      style={{ color: group.accentHex }}
-                    >
-                      {group.eyebrow}
-                    </span>
-                    <h2 className="text-xl sm:text-[22px] font-semibold tracking-tight text-[var(--ink)] group-hover:translate-x-0.5 transition-transform">
-                      {isEn ? group.nameEn : group.name}
-                    </h2>
-                    <p className="text-xs sm:text-[13px] leading-relaxed text-[var(--ink-2)] mt-2 line-clamp-2">
-                      {isEn ? group.taglineEn : group.tagline}
-                    </p>
-                  </div>
+                {/* 右上角切景快捷箭头 */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectStage(safeStageIdx - 1)}
+                    className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.12] flex items-center justify-center text-white/80 transition-colors cursor-pointer"
+                    aria-label="Previous"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectStage(safeStageIdx + 1)}
+                    className="w-8 h-8 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.12] flex items-center justify-center text-white/80 transition-colors cursor-pointer"
+                    aria-label="Next"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
 
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {group.items.slice(0, 3).map((sku) => {
-                      const locSku = localizeProduct(sku, locale);
-                      return (
-                        <button
-                          key={sku.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openHouseDrawer(group, sku);
-                          }}
-                          className="px-2.5 py-1 rounded-lg border border-[var(--rule)] hover:border-[var(--rule-strong)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-card-hover)] text-[11px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+              {/* 视窗中段：大标题 + 精炼利益点 + 视窗内直切规格档位 */}
+              <div className="relative z-10 my-6 space-y-5">
+                <div className="space-y-2 max-w-xl">
+                  <h2 className="text-2xl sm:text-[32px] font-bold tracking-[-0.03em] text-white leading-tight">
+                    {isEn ? currentStageGroup.nameEn : currentStageGroup.name}
+                  </h2>
+                  <p className="text-xs sm:text-[14px] text-white/70 leading-relaxed">
+                    {isEn ? currentStageGroup.taglineEn : currentStageGroup.tagline}
+                  </p>
+                </div>
+
+                {/* 直接在主视窗内优雅切换该品牌下的具体面值规格 */}
+                <div className="flex flex-wrap gap-2">
+                  {currentStageGroup.items.map((sku) => {
+                    const active = sku.id === stageSku.id;
+                    const loc = localizeProduct(sku, locale);
+                    const sp = formatPriceByLocale(sku.price, locale, usdRate);
+                    return (
+                      <button
+                        key={sku.id}
+                        type="button"
+                        onClick={() => {
+                          soundFX.play("tap");
+                          setStageSkuId(sku.id);
+                        }}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer inline-flex items-center gap-2 border ${
+                          active
+                            ? "bg-white text-[#0f1113] border-white shadow-lg font-semibold"
+                            : "bg-white/[0.06] text-white/80 border-white/10 hover:bg-white/[0.12] hover:border-white/20"
+                        }`}
+                      >
+                        <span>{isEn ? loc.shortTier : shortTierLabelZh(sku)}</span>
+                        <span
+                          className={`font-mono text-[11px] tabular-nums ${
+                            active ? "text-[#fb5123] font-bold" : "text-white/55"
+                          }`}
                         >
-                          {isEn ? locSku.shortTier : shortTierLabelZh(sku)}
-                        </button>
-                      );
-                    })}
-                    {group.items.length > 3 ? (
-                      <span className="px-2 py-1 text-[11px] text-[var(--ink-3)]">
-                        +{group.items.length - 3}
+                          {sp.symbol}
+                          {sp.amount}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 视窗底部：VidMuse 招牌磨砂玻璃悬浮控制胶囊（一句话权益 + 单价 + 亮朱红行动钮） */}
+              <div className="relative z-10 rounded-2xl border border-white/15 bg-black/45 backdrop-blur-2xl p-4 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-white truncate">
+                      {localizedStageSku.title}
+                    </span>
+                    {localizedStageSku.badge ? (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white/85">
+                        {localizedStageSku.badge}
                       </span>
                     ) : null}
                   </div>
+                  <p className="text-xs text-white/65 line-clamp-1">
+                    {localizedStageSku.features?.[0] || localizedStageSku.sub}
+                  </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-[var(--rule)] flex items-end justify-between gap-3">
-                  <div className="tabular-nums">
-                    <span className="text-[11px] text-[var(--ink-3)] block mb-0.5">
-                      {isEn ? "Official Direct From" : "官方直连严选价"}
-                    </span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-xs font-semibold text-[var(--ink-2)]">
-                        {minDisplay.symbol}
+                <div className="flex items-center justify-between sm:justify-end gap-4 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                  <div className="tabular-nums text-left sm:text-right">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className="text-xs text-[#e4b274] font-semibold">
+                        {stagePriceDisp.symbol}
                       </span>
-                      <span className="text-2xl font-bold tracking-tight text-[var(--ink)]">
-                        {minDisplay.amount}
+                      <span className="text-2xl font-bold tracking-tight text-white">
+                        {stagePriceDisp.amount}
                       </span>
                       {isEn ? (
-                        <span className="text-[11px] text-[var(--ink-3)] font-mono">USD</span>
-                      ) : group.items.length > 1 ? (
-                        <span className="text-xs text-[var(--ink-3)] ml-0.5">起</span>
+                        <span className="text-[10px] font-mono text-white/55 ml-1">USD</span>
                       ) : null}
                     </div>
                   </div>
 
-                  <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--bg-subtle)] group-hover:bg-[var(--btn-primary-bg)] text-[var(--ink)] group-hover:text-[var(--btn-primary-fg)] border border-[var(--rule-strong)] group-hover:border-transparent text-xs font-semibold transition-all duration-300">
-                    <span>{isEn ? "Select Tier" : "选择规格"}</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openHouseDrawer(currentStageGroup, stageSku)}
+                    className="ql-shimmer-btn h-11 px-6 rounded-xl bg-[#fb5123] hover:bg-[#ff6236] text-white font-semibold text-xs sm:text-sm inline-flex items-center gap-1.5 shadow-[0_12px_28px_-8px_rgba(251,81,35,0.6)] active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <span>{isEn ? "Order Now" : "立即选购"}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
-              </SpotlightCard>
-            );
-          })}
+              </div>
+            </div>
+
+            {/* 右侧 4 列：VidMuse 招牌 [ 01 / 06 ] 摄影机直角取景框垂直选景轨道 */}
+            <div className="lg:col-span-4 flex flex-col justify-between gap-3">
+              {/* 顶部数字指示器 */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-baseline gap-1.5 font-mono tabular-nums">
+                  <span className="text-2xl font-bold text-[var(--ink)]">
+                    {currentStageGroup.indexLabel}
+                  </span>
+                  <span className="text-xs text-[var(--ink-3)]">
+                    / {String(galleryGroups.length).padStart(2, "0")}
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono tracking-wider uppercase text-[var(--ink-3)]">
+                  {isEn ? "SELECT SUITE · ↑↓" : "点选或 ↑↓ 切景"}
+                </span>
+              </div>
+
+              {/* 6 大品牌垂直极简选景条 */}
+              <div className="flex-1 flex flex-col justify-between gap-2">
+                {galleryGroups.map((group, idx) => {
+                  const isActive = idx === safeStageIdx;
+                  const minCny = Math.min(...group.items.map((p) => parseFloat(p.price) || 9999));
+                  const minDisp = formatPriceByLocale(minCny, locale, usdRate);
+
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      onClick={() => handleSelectStage(idx)}
+                      className={`group w-full text-left px-3 py-2 rounded-xl border transition-all duration-200 flex items-center justify-between gap-3 cursor-pointer ${
+                        isActive
+                          ? "vm-viewfinder bg-[var(--bg-card-hover)] border-[var(--rule-strong)] shadow-sm"
+                          : "bg-[var(--bg-card)] border-[var(--rule)] opacity-85 hover:opacity-100 hover:border-[var(--rule-strong)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`font-mono text-[11px] tabular-nums ${
+                            isActive ? "text-[var(--vermilion)] font-bold" : "text-[var(--ink-3)]"
+                          }`}
+                        >
+                          {group.indexLabel}
+                        </span>
+                        <BrandEmblem brand={group.key} size="md" />
+                        <div className="min-w-0">
+                          <span className="text-[13.5px] font-semibold text-[var(--ink)] block truncate">
+                            {isEn ? group.shortNavEn : group.shortNav}
+                          </span>
+                          <span className="text-[11px] text-[var(--ink-3)] block truncate">
+                            {isEn ? `${group.items.length} plans` : `${group.items.length} 款实时规格`}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right font-mono tabular-nums flex-shrink-0">
+                        <span
+                          className={`text-xs font-semibold ${
+                            isActive ? "text-[var(--ink)]" : "text-[var(--ink-2)]"
+                          }`}
+                        >
+                          {minDisp.symbol}
+                          {minDisp.amount}
+                        </span>
+                        {group.items.length > 1 && !isEn ? (
+                          <span className="text-[10px] text-[var(--ink-3)] ml-0.5">起</span>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* VidMuse 招牌底部极简摄影机时间码 + 水平刻度标尺 */}
+          <div className="pt-1 flex items-center justify-between gap-4 text-[11px] font-mono text-[var(--ink-3)] select-none">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--vermilion)] ql-halo-dot" />
+              <span>LIVE</span>
+              <span className="tabular-nums opacity-75">{formatTime(elapsedSec)}</span>
+            </div>
+
+            {/* 水平精确分度标尺（点击刻度亦可切景） */}
+            <div className="hidden sm:flex items-end gap-3.5">
+              {galleryGroups.map((g, idx) => {
+                const active = idx === safeStageIdx;
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => handleSelectStage(idx)}
+                    className="group flex flex-col items-center gap-1 cursor-pointer"
+                    title={isEn ? g.shortNavEn : g.shortNav}
+                  >
+                    <span
+                      className={`text-[10px] tabular-nums transition-colors ${
+                        active
+                          ? "text-[var(--ink)] font-bold"
+                          : "text-[var(--ink-3)] group-hover:text-[var(--ink-2)]"
+                      }`}
+                    >
+                      {g.indexLabel}
+                    </span>
+                    <span
+                      className={`w-[1.5px] rounded-full transition-all duration-300 ${
+                        active ? "h-4 bg-[var(--vermilion)]" : "h-2 bg-[var(--rule-strong)]"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onGoToRedeem()}
+              className="inline-flex items-center gap-1 text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-[var(--vermilion)]" />
+              <span>{isEn ? "7-in-1 Activation Studio →" : "已有卡密？进开通台 →"}</span>
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ========================================================================
+          Sand.ai 画册级精简全品直览区（信息极度克制，单卡仅 4 要素，方便老客速览全目录）
+         ======================================================================== */}
+      <section className="space-y-6 pt-4 border-t border-[var(--rule)]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <span className="text-[11px] font-mono tracking-[0.18em] uppercase text-[var(--vermilion)] block">
+              {isEn ? "COMPLETE CATALOG" : "ALL DIRECT INVENTORY"}
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--ink)] mt-1">
+              {isEn
+                ? `All ${products.length} Official SKUs · Live Upstream Sync`
+                : `全部 ${products.length} 款官方直连规格 · 实时库存一览`}
+            </h2>
+          </div>
+          <span className="text-xs text-[var(--ink-3)]">
+            {isEn
+              ? "Zero-password token provisioning · Click any item for instant checkout"
+              : "零密码安全交付 · 点击任意单品直接扫码锁单"}
+          </span>
         </div>
-      ) : (
-        /* ==================== 模式 B：紧凑全量单品矩阵 ==================== */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((raw, idx) => {
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+          {products.map((raw) => {
             const p = localizeProduct(raw, locale);
             const house = classifyBrandHouse(raw);
-            const meta = HOUSE_META[house];
             const outOfStock = typeof raw.stock === "number" && raw.stock <= 0;
             const pDisp = formatPriceByLocale(raw.price, locale, usdRate);
+
             return (
-              <SpotlightCard
+              <button
                 key={raw.id}
-                spotlightColor={meta.spotlightRgba}
-                delayMs={idx * 25}
+                type="button"
                 onClick={() => openSingleSkuDirectly(raw)}
-                className="p-5 cursor-pointer"
+                className="ql-card group p-4 sm:p-5 rounded-2xl text-left flex flex-col justify-between gap-4 cursor-pointer"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <BrandEmblem brand={house} size="md" />
-                    <div>
-                      <h3 className="text-sm font-semibold text-[var(--ink)] leading-snug">
-                        {p.title}
-                      </h3>
-                      <span className="text-[11px] text-[var(--ink-3)] line-clamp-1 mt-0.5 block">
-                        {p.sub}
-                      </span>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <BrandEmblem brand={house} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-[var(--ink)] leading-snug group-hover:text-[var(--vermilion)] transition-colors truncate">
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-[var(--ink-3)] line-clamp-1 mt-1">
+                      {p.sub}
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[var(--rule)] flex items-center justify-between">
-                  <div className="tabular-nums flex items-baseline gap-1">
-                    <span className="text-xs text-[var(--clay)] font-semibold">{pDisp.symbol}</span>
+                <div className="pt-3 border-t border-[var(--rule)] flex items-center justify-between tabular-nums">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xs font-semibold text-[var(--ink-2)]">
+                      {pDisp.symbol}
+                    </span>
                     <span className="text-lg font-bold text-[var(--ink)]">{pDisp.amount}</span>
                     {isEn ? (
-                      <span className="text-[10.5px] text-[var(--ink-3)] font-mono">USD</span>
+                      <span className="text-[10px] text-[var(--ink-3)] font-mono">USD</span>
+                    ) : raw.originalPrice ? (
+                      <span className="text-[11px] text-[var(--ink-3)] line-through ml-1">
+                        ¥{raw.originalPrice}
+                      </span>
                     ) : null}
                   </div>
                   <span
-                    className={`text-[11px] font-medium ${
-                      outOfStock ? "text-rose-400" : "text-emerald-400"
+                    className={`text-[11.5px] font-medium inline-flex items-center gap-1 ${
+                      outOfStock ? "text-rose-400" : "text-[var(--ink-2)] group-hover:text-[var(--ink)]"
                     }`}
                   >
-                    {outOfStock
-                      ? isEn
-                        ? "Out of Stock"
-                        : "暂时缺货"
-                      : typeof raw.stock === "number"
+                    <span>
+                      {outOfStock
                         ? isEn
-                          ? `${raw.stock} Left →`
-                          : `余 ${raw.stock} · 选购 →`
-                        : isEn
-                          ? "Instant →"
-                          : "极速秒发 →"}
+                          ? "Sold Out"
+                          : "补货中"
+                        : typeof raw.stock === "number"
+                          ? isEn
+                            ? `${raw.stock} left`
+                            : `余 ${raw.stock}`
+                          : isEn
+                            ? "Instant"
+                            : "现货"}
+                    </span>
+                    {!outOfStock ? (
+                      <ArrowRight className="w-3.5 h-3.5 text-[var(--vermilion)] group-hover:translate-x-0.5 transition-transform" />
+                    ) : null}
                   </span>
                 </div>
-              </SpotlightCard>
+              </button>
             );
           })}
         </div>
-      )}
+      </section>
 
-      {/* ==================== Linear / Apple Store 级规格抽屉与跨境收银台 ==================== */}
+      {/* ==================== Sand.ai / Apple Store 级规格抽屉与跨境收银台 ==================== */}
       {selectedProduct && localizedSelected ? (
         <div
           onClick={closeModal}
-          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/72 backdrop-blur-xl"
+          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xl"
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -710,7 +964,6 @@ export const StorePricingCabin: React.FC<Props> = ({
           >
             <div className="w-10 h-1 bg-[var(--rule-strong)] rounded-full mx-auto mb-3 sm:hidden" />
 
-            {/* 模态框头部 */}
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3.5 mb-4">
               <div className="flex items-center gap-3">
                 <BrandEmblem
@@ -747,14 +1000,13 @@ export const StorePricingCabin: React.FC<Props> = ({
 
             {orderStage === "CONFIG" ? (
               <div className="space-y-4 text-sm">
-                {/* 1. 大类下具体面值规格切换矩阵 */}
                 {activeGroup && activeGroup.items.length > 1 ? (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-[var(--ink-2)] flex items-center justify-between">
                       <span>{isEn ? "Select Plan / Tier" : "选择具体套餐规格"}</span>
                       <span className="text-[11px] text-[var(--ink-3)]">
                         {isEn
-                          ? `${activeGroup.items.length} options available`
+                          ? `${activeGroup.items.length} options`
                           : `共 ${activeGroup.items.length} 款细分档位`}
                       </span>
                     </label>
@@ -771,7 +1023,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                             onClick={() => selectSkuInsideModal(rawSku)}
                             className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
                               isSelected
-                                ? "border-[var(--clay)] bg-[var(--bg-card-hover)] shadow-[0_0_0_1px_var(--clay)]"
+                                ? "border-[var(--vermilion)] bg-[var(--bg-card-hover)] shadow-[0_0_0_1px_var(--vermilion)]"
                                 : "border-[var(--rule)] bg-[var(--bg-subtle)] hover:border-[var(--rule-strong)]"
                             } ${skuOut ? "opacity-55" : ""}`}
                           >
@@ -780,7 +1032,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                                 {sku.title}
                               </span>
                               {isSelected ? (
-                                <span className="ql-pop w-4 h-4 rounded-full bg-[var(--clay)] text-slate-950 flex items-center justify-center flex-shrink-0">
+                                <span className="ql-pop w-4 h-4 rounded-full bg-[var(--vermilion)] text-white flex items-center justify-center flex-shrink-0">
                                   <Check className="w-2.5 h-2.5 stroke-[3]" />
                                 </span>
                               ) : null}
@@ -788,7 +1040,7 @@ export const StorePricingCabin: React.FC<Props> = ({
 
                             <div className="mt-2.5 flex items-baseline justify-between tabular-nums">
                               <div>
-                                <span className="text-[11px] text-[var(--clay)] font-semibold">
+                                <span className="text-[11px] text-[var(--vermilion)] font-semibold">
                                   {skuPrice.symbol}
                                 </span>
                                 <span className="text-base font-bold text-[var(--ink)] ml-0.5">
@@ -806,7 +1058,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                               </div>
                               <span
                                 className={`text-[10.5px] ${
-                                  skuOut ? "text-rose-400" : "text-emerald-400"
+                                  skuOut ? "text-rose-400" : "text-emerald-500"
                                 }`}
                               >
                                 {skuOut
@@ -829,25 +1081,20 @@ export const StorePricingCabin: React.FC<Props> = ({
                   </div>
                 ) : null}
 
-                {/* 2. 当前选中规格详情 */}
                 <div className="p-4 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] space-y-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-[var(--ink)]">
-                          {localizedSelected.title}
-                        </span>
-                        {localizedSelected.badge ? (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-400/25">
-                            {localizedSelected.badge}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-[var(--ink-2)] mt-1 leading-relaxed">
-                        {localizedSelected.description}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-[var(--ink)]">
+                      {localizedSelected.title}
+                    </span>
+                    {localizedSelected.badge ? (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--vermilion)]/15 text-[var(--vermilion)] border border-[var(--vermilion)]/25">
+                        {localizedSelected.badge}
+                      </span>
+                    ) : null}
                   </div>
+                  <p className="text-xs text-[var(--ink-2)] leading-relaxed">
+                    {localizedSelected.description}
+                  </p>
 
                   {localizedSelected.features && localizedSelected.features.length > 0 ? (
                     <div className="pt-2 border-t border-[var(--rule)] grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -856,7 +1103,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                           key={idx}
                           className="flex items-start gap-1.5 text-[11.5px] text-[var(--ink-2)]"
                         >
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
                           <span className="line-clamp-1">{feat}</span>
                         </div>
                       ))}
@@ -864,11 +1111,10 @@ export const StorePricingCabin: React.FC<Props> = ({
                   ) : null}
                 </div>
 
-                {/* 3. 多卡头子规格 */}
                 {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-[var(--ink-2)] flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-[var(--clay)]" />
+                      <Layers className="w-3.5 h-3.5 text-[var(--vermilion)]" />
                       <span>
                         {isEn ? "Select Card BIN Range (Live Stock)" : "选择卡头 BIN 段（实时库存）"}
                       </span>
@@ -885,14 +1131,14 @@ export const StorePricingCabin: React.FC<Props> = ({
                           }}
                           className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer disabled:opacity-40 ${
                             chosenVariant === v.value
-                              ? "border-[var(--clay)] bg-[var(--bg-card-hover)]"
+                              ? "border-[var(--vermilion)] bg-[var(--bg-card-hover)]"
                               : "border-[var(--rule)] bg-[var(--bg-subtle)] hover:border-[var(--rule-strong)]"
                           }`}
                         >
                           <span className="font-mono font-semibold text-xs block text-[var(--ink)]">
                             BIN {v.label}
                           </span>
-                          <span className="text-[10.5px] text-emerald-400">
+                          <span className="text-[10.5px] text-emerald-500">
                             {isEn ? `${v.stock} left` : `余 ${v.stock} 张`}
                           </span>
                         </button>
@@ -901,7 +1147,6 @@ export const StorePricingCabin: React.FC<Props> = ({
                   </div>
                 ) : null}
 
-                {/* 4. 购买数量与预留查询凭证 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-[var(--ink-2)] block mb-1.5">
@@ -934,9 +1179,9 @@ export const StorePricingCabin: React.FC<Props> = ({
 
                   <div className="sm:col-span-2">
                     <label className="text-xs text-[var(--ink-2)] block mb-1.5">
-                      {isEn ? "Email / WhatsApp / Telegram " : "预留微信号或邮箱 "}
-                      <span className="text-[var(--clay)]">
-                        {isEn ? "(For Order Vault Lookup)" : "(选填·防关页丢单)"}
+                      {isEn ? "Email / WhatsApp / WeChat " : "预留微信号或邮箱 "}
+                      <span className="text-[var(--vermilion)]">
+                        {isEn ? "(For Vault Lookup)" : "(选填·防关页丢单)"}
                       </span>
                     </label>
                     <input
@@ -954,12 +1199,11 @@ export const StorePricingCabin: React.FC<Props> = ({
                 </div>
 
                 {orderError ? (
-                  <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs">
+                  <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-500 text-xs">
                     {orderError}
                   </div>
                 ) : null}
 
-                {/* 5. 结算提交栏 */}
                 {(() => {
                   const totalCny = parseFloat(selectedProduct.price) * quantity;
                   const totalDisp = formatPriceByLocale(totalCny, locale, usdRate);
@@ -970,7 +1214,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                           {isEn ? "Total Due" : "应付总额"}
                         </span>
                         <div className="flex items-baseline gap-0.5">
-                          <span className="text-xs font-semibold text-[var(--clay)]">
+                          <span className="text-xs font-semibold text-[var(--vermilion)]">
                             {totalDisp.symbol}
                           </span>
                           <span className="text-2xl font-bold text-[var(--ink)]">
@@ -992,7 +1236,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                           (typeof selectedProduct.stock === "number" &&
                             selectedProduct.stock <= 0)
                         }
-                        className="ql-shimmer-btn flex-1 h-12 rounded-2xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform cursor-pointer disabled:opacity-50"
+                        className="ql-shimmer-btn flex-1 h-12 rounded-2xl bg-[#fb5123] hover:bg-[#ff6236] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
                       >
                         {isCreatingOrder ? (
                           <>
@@ -1021,10 +1265,8 @@ export const StorePricingCabin: React.FC<Props> = ({
               <div className="space-y-4 text-xs">
                 <div className="p-3 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule)] flex items-center justify-between">
                   <span className="text-[var(--ink-2)] flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[var(--clay)]" />
-                    <span>
-                      {isEn ? "Inventory Lock Countdown" : "订单有效锁单倒计时"}
-                    </span>
+                    <Clock className="w-3.5 h-3.5 text-[var(--vermilion)]" />
+                    <span>{isEn ? "Inventory Lock Countdown" : "订单有效锁单倒计时"}</span>
                   </span>
                   <span className="font-mono font-bold text-sm tabular-nums text-[var(--ink)]">
                     {formatTime(secondsLeft)}
@@ -1053,7 +1295,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                             <button
                               type="button"
                               onClick={() => handleCopy(activeOrder.orderId, "orderId")}
-                              className="text-[11px] text-[var(--clay)] font-medium hover:underline cursor-pointer"
+                              className="text-[11px] text-[var(--vermilion)] font-medium hover:underline cursor-pointer"
                             >
                               {copiedKey === "orderId"
                                 ? isEn
@@ -1067,7 +1309,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                         </div>
                         <div className="text-right tabular-nums">
                           <div>
-                            <span className="text-xs font-semibold text-[var(--clay)]">
+                            <span className="text-xs font-semibold text-[var(--vermilion)]">
                               {ordDisp.symbol}
                             </span>
                             <span className="text-2xl font-bold text-[var(--ink)] ml-0.5">
@@ -1082,15 +1324,14 @@ export const StorePricingCabin: React.FC<Props> = ({
                         </div>
                       </div>
 
-                      {/* 英文态专属：海外外贸客户一键 WhatsApp / Telegram / USDT 通道 */}
                       {isEn ? (
-                        <div className="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-400/30 space-y-2.5">
+                        <div className="p-3.5 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--rule-strong)] space-y-2.5">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-[var(--ink)] flex items-center gap-1.5">
-                              <Globe className="w-3.5 h-3.5 text-sky-400" />
+                              <Globe className="w-3.5 h-3.5 text-[var(--vermilion)]" />
                               <span>Global Payment Options (USD / USDT / Card)</span>
                             </span>
-                            <span className="text-[10.5px] text-emerald-400 font-medium">
+                            <span className="text-[10.5px] text-emerald-500 font-medium">
                               Instant Desk
                             </span>
                           </div>
@@ -1176,14 +1417,14 @@ export const StorePricingCabin: React.FC<Props> = ({
                             {isEn ? (
                               <>
                                 Scan QR to pay{" "}
-                                <strong className="text-[var(--clay)]">
+                                <strong className="text-[var(--vermilion)]">
                                   ¥{activeOrder.totalAmount.toFixed(2)} CNY (≈ ${ordDisp.amount} USD)
                                 </strong>
                               </>
                             ) : (
                               <>
                                 请扫码支付{" "}
-                                <strong className="text-[var(--clay)]">
+                                <strong className="text-[var(--vermilion)]">
                                   ¥{activeOrder.totalAmount.toFixed(2)}
                                 </strong>
                                 ，备注单号后四位核销更快
@@ -1199,7 +1440,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                                 ? "Connect Direct to Complete Payment"
                                 : "添加站长微信转账秒发 (0手续费)"}
                             </span>
-                            <span className="text-[11px] text-emerald-400 font-medium">
+                            <span className="text-[11px] text-emerald-500 font-medium">
                               {isEn ? "Online" : "在线自动出卡"}
                             </span>
                           </div>
@@ -1243,7 +1484,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                     className="ql-input w-full h-10 px-3.5 text-xs"
                   />
 
-                  {orderError ? <div className="text-rose-400 text-xs">{orderError}</div> : null}
+                  {orderError ? <div className="text-rose-500 text-xs">{orderError}</div> : null}
 
                   <button
                     type="button"
@@ -1280,7 +1521,7 @@ export const StorePricingCabin: React.FC<Props> = ({
             {orderStage === "AWAITING_CONFIRM" && activeOrder ? (
               <div className="py-6 text-center space-y-4 text-xs">
                 <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] border border-[var(--rule-strong)] flex items-center justify-center mx-auto">
-                  <Loader2 className="w-6 h-6 animate-spin text-[var(--clay)]" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[var(--vermilion)]" />
                 </div>
                 <div className="space-y-1.5">
                   <h4 className="text-lg font-semibold text-[var(--ink)]">
@@ -1291,7 +1532,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                   <p className="text-[var(--ink-2)] leading-relaxed max-w-sm mx-auto">
                     {isEn
                       ? "Operator has received an instant mobile alert! Your activation key will pop up right on this screen automatically (syncs every 3s)."
-                      : "站长手机已收到实时强弹窗提醒！确认到账后卡密将直接在此页面自动弹出（每 3 秒自动刷新）。"}
+                      : "站长手机已收到微信实时提醒！确认到账后卡密将直接在此页面自动弹出（每 3 秒自动刷新）。"}
                   </p>
                 </div>
 
@@ -1303,7 +1544,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={() => handleCopy(activeOrder.orderId, "awaitOrderId")}
-                      className="text-[var(--clay)] font-semibold hover:underline cursor-pointer"
+                      className="text-[var(--vermilion)] font-semibold hover:underline cursor-pointer"
                     >
                       {copiedKey === "awaitOrderId"
                         ? isEn
@@ -1323,7 +1564,7 @@ export const StorePricingCabin: React.FC<Props> = ({
 
             {orderStage === "EXPIRED" ? (
               <div className="text-center py-6 space-y-4 text-xs">
-                <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
+                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
                 <h4 className="text-base font-semibold text-[var(--ink)]">
                   {isEn ? "Order Lock Expired" : "锁单时间已到"}
                 </h4>
@@ -1346,7 +1587,7 @@ export const StorePricingCabin: React.FC<Props> = ({
             {orderStage === "SUCCESS" && activeOrder ? (
               <div className="py-4 space-y-5 text-xs">
                 <div className="text-center space-y-1.5">
-                  <div className="ql-pop w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
+                  <div className="ql-pop w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
                   <h4 className="text-xl font-semibold text-[var(--ink)]">
@@ -1398,7 +1639,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                             href={item.href}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[var(--clay)] font-medium hover:underline"
+                            className="inline-flex items-center gap-1 text-[var(--vermilion)] font-medium hover:underline"
                           >
                             <span>{isEn ? "Open Claim Link" : "打开专属链接"}</span>
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -1420,7 +1661,7 @@ export const StorePricingCabin: React.FC<Props> = ({
                       closeModal();
                       onGoToRedeem(firstCdk);
                     }}
-                    className="ql-shimmer-btn w-full h-12 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                    className="ql-shimmer-btn w-full h-12 rounded-2xl bg-[#fb5123] hover:bg-[#ff6236] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg cursor-pointer"
                   >
                     <span>
                       {isEn

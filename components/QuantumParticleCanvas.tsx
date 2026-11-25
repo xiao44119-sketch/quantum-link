@@ -12,23 +12,18 @@ interface Props {
 }
 
 interface Particle3D {
-  // Current 3D position
   x: number;
   y: number;
   z: number;
-  // Velocity
   vx: number;
   vy: number;
   vz: number;
-  // Parametric seeds [0..1]
   u: number;
   v: number;
   w: number;
-  // Visual traits
   size: number;
   alpha: number;
-  tintMix: number; // 0 = primary accent, 1 = ice/silver
-  isOuterDust: boolean;
+  tintMix: number;
 }
 
 interface Shockwave {
@@ -48,12 +43,12 @@ function hexToRgb(hex: string): [number, number, number] {
           .map((c) => c + c)
           .join("")
       : clean;
-  const num = parseInt(full || "38bdf8", 16);
+  const num = parseInt(full || "fb5123", 16);
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 
-function makeGlowSprite(r: number, g: number, b: number, isDark: boolean): HTMLCanvasElement {
-  const size = 48;
+function makePinpointSprite(r: number, g: number, b: number, isDark: boolean): HTMLCanvasElement {
+  const size = 32;
   const c = document.createElement("canvas");
   c.width = size;
   c.height = size;
@@ -62,13 +57,13 @@ function makeGlowSprite(r: number, g: number, b: number, isDark: boolean): HTMLC
   const half = size / 2;
   const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
   if (isDark) {
-    grad.addColorStop(0, "rgba(255, 255, 255, 0.98)");
-    grad.addColorStop(0.11, `rgba(${r}, ${g}, ${b}, 0.88)`);
-    grad.addColorStop(0.32, `rgba(${r}, ${g}, ${b}, 0.22)`);
+    grad.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+    grad.addColorStop(0.16, `rgba(${r}, ${g}, ${b}, 0.72)`);
+    grad.addColorStop(0.45, `rgba(${r}, ${g}, ${b}, 0.12)`);
     grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
   } else {
-    grad.addColorStop(0, `rgba(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 20)}, 0.9)`);
-    grad.addColorStop(0.22, `rgba(${r}, ${g}, ${b}, 0.34)`);
+    grad.addColorStop(0, `rgba(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 30)}, 0.78)`);
+    grad.addColorStop(0.26, `rgba(${r}, ${g}, ${b}, 0.28)`);
     grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
   }
   ctx.fillStyle = grad;
@@ -77,15 +72,15 @@ function makeGlowSprite(r: number, g: number, b: number, isDark: boolean): HTMLC
 }
 
 /**
- * 3D 动态虚拟粒子力场引擎 (Quantum Torus Collapse + Magnetic Fluid Curl + Shockwave)
- * - 0.0s ~ 1.05s: 深空漩涡引力坍缩成 3D 倾角量子星环
- * - 1.05s: 自动释放全息脉冲冲击波，舒展为常驻可交互 3D 粒子场
- * - 鼠标物理：3D 磁流体斥力推开 + 切向漩涡牵引 + 近距高光激发
- * - 点击物理：任意位置点击释放 3D 扩散冲击波涟漪
+ * QuantumLink V5 · VidMuse 电影级克制粒子力场引擎
+ * - 0.0s ~ 1.1s：1,400 颗锐利微光子从深空旋转坍缩成 3D 倾角星环（高定入场特效）
+ * - 1.1s+：轻脉冲自动向外缘广域轨道退让舒展，中心文字安全区自动衰减至极低亮度，彻底告别雪花脏屏！
+ * - 左右两侧渲染 VidMuse 同款电影棚边缘氛围暗角光（随当前选中 AI 品牌无极变色）
+ * - 保留丝滑鼠标磁流体涡旋与点击冲击波交互
  */
 export const QuantumParticleCanvas: React.FC<Props> = ({
-  accentHex = "#38BDF8",
-  secondaryHex = "#818CF8",
+  accentHex = "#FB5123",
+  secondaryHex = "#E4B274",
   theme = "dark",
   formation = "torus",
 }) => {
@@ -134,46 +129,39 @@ export const QuantumParticleCanvas: React.FC<Props> = ({
     };
     resize();
 
-    // Adaptive particle count: ~2100 on desktop, ~1050 on mobile for locked 60-120fps
     const isMobile = width < 768;
-    const PARTICLE_COUNT = isMobile ? 1050 : 2200;
+    const PARTICLE_COUNT = isMobile ? 680 : 1450;
 
-    // Initialize particles scattered in deep outer vortex for dramatic entrance implosion
+    // 初始散落在深空外圈，呈现极具电影空间感的旋聚开场
     const particles: Particle3D[] = Array.from({ length: PARTICLE_COUNT }, (_, idx) => {
       const u = idx / PARTICLE_COUNT;
-      const v = ((idx * 0.61803398875) % 1);
+      const v = (idx * 0.61803398875) % 1;
       const w = Math.random();
-      const spawnAngle = u * Math.PI * 12 + (Math.random() - 0.5) * 0.8;
-      const spawnRadius = 850 + Math.random() * 1350;
-      const sx = Math.cos(spawnAngle) * spawnRadius;
-      const sy = Math.sin(spawnAngle) * spawnRadius * 0.72;
-      const sz = (Math.random() - 0.5) * 1400 + 450;
-
-      // Initial tangential swirl velocity
+      const angle = u * Math.PI * 10 + (Math.random() - 0.5) * 0.6;
+      const dist = 780 + Math.random() * 1150;
       return {
-        x: sx,
-        y: sy,
-        z: sz,
-        vx: -Math.sin(spawnAngle) * 18,
-        vy: Math.cos(spawnAngle) * 14,
-        vz: -16,
+        x: Math.cos(angle) * dist,
+        y: Math.sin(angle) * dist * 0.68,
+        z: (Math.random() - 0.5) * 1100 + 360,
+        vx: -Math.sin(angle) * 15,
+        vy: Math.cos(angle) * 11,
+        vz: -14,
         u,
         v,
         w,
-        size: Math.random() * 1.9 + (idx % 9 === 0 ? 2.1 : 0.85),
-        alpha: Math.random() * 0.58 + 0.28,
-        tintMix: idx % 3 === 0 ? 0.85 : Math.random() * 0.55,
-        isOuterDust: idx >= PARTICLE_COUNT * 0.78,
+        size: Math.random() * 1.15 + 0.55,
+        alpha: Math.random() * 0.45 + 0.25,
+        tintMix: idx % 3 === 0 ? 0.82 : Math.random() * 0.55,
       };
     });
 
     const pointer = {
       x: width * 0.5,
-      y: height * 0.34,
+      y: height * 0.35,
       vx: 0,
       vy: 0,
       prevX: width * 0.5,
-      prevY: height * 0.34,
+      prevY: height * 0.35,
       active: false,
     };
 
@@ -194,9 +182,9 @@ export const QuantumParticleCanvas: React.FC<Props> = ({
       shockwaves.push({
         x: e.clientX,
         y: e.clientY,
-        radius: 8,
-        maxRadius: Math.max(width, height) * 0.48,
-        alpha: 0.55,
+        radius: 6,
+        maxRadius: Math.max(width, height) * 0.42,
+        alpha: 0.42,
       });
     };
 
@@ -204,10 +192,9 @@ export const QuantumParticleCanvas: React.FC<Props> = ({
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
 
-    // Cached glow sprites regenerated only when RGB/theme noticeably shifts
-    let spritePrimary = makeGlowSprite(56, 189, 248, themeRef.current === "dark");
-    let spriteSecondary = makeGlowSprite(129, 140, 248, themeRef.current === "dark");
-    let spriteIce = makeGlowSprite(226, 232, 240, themeRef.current === "dark");
+    let spritePrimary = makePinpointSprite(251, 81, 35, themeRef.current === "dark");
+    let spriteSecondary = makePinpointSprite(228, 178, 116, themeRef.current === "dark");
+    let spriteNeutral = makePinpointSprite(235, 238, 245, themeRef.current === "dark");
     let lastSpriteKey = "";
 
     const startTime = performance.now();
@@ -219,29 +206,27 @@ export const QuantumParticleCanvas: React.FC<Props> = ({
         return;
       }
 
-      const elapsed = (now - startTime) * 0.001; // seconds
+      const elapsed = (now - startTime) * 0.001;
       const isDark = themeRef.current === "dark";
 
-      // Smoothly interpolate primary brand RGB
       const cur = currentPrimaryRef.current;
       const tgt = targetPrimaryRef.current;
-      cur[0] += (tgt[0] - cur[0]) * 0.06;
-      cur[1] += (tgt[1] - cur[1]) * 0.06;
-      cur[2] += (tgt[2] - cur[2]) * 0.06;
+      cur[0] += (tgt[0] - cur[0]) * 0.055;
+      cur[1] += (tgt[1] - cur[1]) * 0.055;
+      cur[2] += (tgt[2] - cur[2]) * 0.055;
       const r = Math.round(cur[0]);
       const g = Math.round(cur[1]);
       const b = Math.round(cur[2]);
       const [sr, sg, sb] = secondaryRgbRef.current;
 
-      // Refresh cached glow sprites if quantized color or theme changed
       const spriteKey = `${r >> 2}_${g >> 2}_${b >> 2}_${sr >> 2}_${isDark ? 1 : 0}`;
       if (spriteKey !== lastSpriteKey) {
-        spritePrimary = makeGlowSprite(r, g, b, isDark);
-        spriteSecondary = makeGlowSprite(sr, sg, sb, isDark);
-        spriteIce = makeGlowSprite(
-          isDark ? 241 : 71,
-          isDark ? 245 : 85,
-          isDark ? 249 : 105,
+        spritePrimary = makePinpointSprite(r, g, b, isDark);
+        spriteSecondary = makePinpointSprite(sr, sg, sb, isDark);
+        spriteNeutral = makePinpointSprite(
+          isDark ? 236 : 78,
+          isDark ? 240 : 82,
+          isDark ? 248 : 92,
           isDark
         );
         lastSpriteKey = spriteKey;
@@ -250,193 +235,188 @@ export const QuantumParticleCanvas: React.FC<Props> = ({
       ctx.globalCompositeOperation = "source-over";
       ctx.clearRect(0, 0, width, height);
 
-      // Center stage coordinates (upper-hero focal point)
-      const cx = width * 0.5;
-      const cy = Math.min(height * 0.34, 310);
+      // 1. VidMuse 同款电影棚左右双侧氛围泛光（绝不在正文背后制造浑浊大亮斑）
+      const leftWash = ctx.createRadialGradient(
+        -width * 0.06,
+        height * 0.45,
+        10,
+        -width * 0.06,
+        height * 0.45,
+        Math.max(width * 0.44, 420)
+      );
+      leftWash.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${isDark ? 0.2 : 0.08})`);
+      leftWash.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, ${isDark ? 0.05 : 0.02})`);
+      leftWash.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = leftWash;
+      ctx.fillRect(0, 0, width, height);
 
-      // Entrance choreography envelope:
-      // 0.0s -> 1.02s: Tight singularity torus compression (scale 0.58)
-      // 1.02s: Automatic pulse shockwave + smooth expansion to 1.0
-      let formationScale = 1.0;
-      if (elapsed < 1.02) {
-        const p = elapsed / 1.02;
-        formationScale = 0.52 + 0.14 * Math.sin(p * Math.PI);
+      const rightWash = ctx.createRadialGradient(
+        width * 1.05,
+        height * 0.56,
+        10,
+        width * 1.05,
+        height * 0.56,
+        Math.max(width * 0.42, 400)
+      );
+      rightWash.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${isDark ? 0.17 : 0.07})`);
+      rightWash.addColorStop(0.55, `rgba(${sr}, ${sg}, ${sb}, ${isDark ? 0.05 : 0.02})`);
+      rightWash.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = rightWash;
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width * 0.5;
+      const cy = height * 0.46;
+
+      // 入场 0.0s ~ 1.05s 凝聚星环 -> 1.05s 脉冲向屏幕外缘广域轨道优雅退让
+      let ringScale = 1.0;
+      let quietZoneStrength = 0; // 0 during intro ring, eases to 1 so text stays 100% clean
+      if (elapsed < 1.05) {
+        const p = elapsed / 1.05;
+        ringScale = 0.46 + 0.1 * Math.sin(p * Math.PI);
+        quietZoneStrength = 0.15;
       } else if (!entranceBurstFired) {
         entranceBurstFired = true;
         shockwaves.push({
           x: cx,
-          y: cy,
-          radius: 24,
-          maxRadius: Math.max(width, height) * 0.68,
-          alpha: 0.65,
+          y: height * 0.36,
+          radius: 18,
+          maxRadius: Math.max(width, height) * 0.62,
+          alpha: 0.45,
         });
       }
-      if (elapsed >= 1.02 && elapsed < 2.2) {
-        const ep = Math.min(1, (elapsed - 1.02) / 1.18);
+      if (elapsed >= 1.05 && elapsed < 2.25) {
+        const ep = Math.min(1, (elapsed - 1.05) / 1.2);
         const easeOut = 1 - Math.pow(1 - ep, 3);
-        formationScale = 0.58 + 0.42 * easeOut;
+        ringScale = 0.52 + 0.86 * easeOut; // 退让到宽阔外环
+        quietZoneStrength = 0.15 + 0.85 * easeOut;
+      } else if (elapsed >= 2.25) {
+        ringScale = 1.38;
+        quietZoneStrength = 1.0;
       }
 
-      // Deep ambient volumetric glow behind the 3D core
-      const coreGlow = ctx.createRadialGradient(
-        cx + (pointer.active ? (pointer.x - cx) * 0.06 : 0),
-        cy + (pointer.active ? (pointer.y - cy) * 0.05 : 0),
-        10,
-        cx,
-        cy,
-        Math.max(width * 0.48, 460)
-      );
-      coreGlow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${isDark ? 0.16 : 0.11})`);
-      coreGlow.addColorStop(0.45, `rgba(${sr}, ${sg}, ${sb}, ${isDark ? 0.06 : 0.04})`);
-      coreGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = coreGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      // 3D rotation angles (gentle mouse parallax + continuous orbital spin)
-      const mouseTiltX = pointer.active ? ((pointer.y - cy) / height) * 0.28 : 0;
-      const mouseTiltY = pointer.active ? ((pointer.x - cx) / width) * 0.34 : 0;
-
-      const rotSpin = elapsed < 1.05 ? elapsed * 2.1 : 2.205 + (elapsed - 1.05) * 0.24;
-      const pitch = 0.98 + mouseTiltX; // Tilted Saturn/Torus angle
-      const roll = -0.24 + mouseTiltY * 0.5;
-
-      const cosP = Math.cos(pitch);
-      const sinP = Math.sin(pitch);
-      const cosR = Math.cos(roll);
-      const sinR = Math.sin(roll);
-
-      const fov = 560;
-      const camZ = 720;
-      const baseRadius = Math.min(width * 0.31, 330) * formationScale;
-      const mode = formationRef.current;
-
-      // Update shockwaves
+      // 脉冲涟漪细环
       for (let s = shockwaves.length - 1; s >= 0; s--) {
         const sw = shockwaves[s];
-        sw.radius += (sw.maxRadius - sw.radius) * 0.075 + 6;
-        sw.alpha *= 0.945;
+        sw.radius += (sw.maxRadius - sw.radius) * 0.07 + 5;
+        sw.alpha *= 0.94;
         if (sw.alpha < 0.012 || sw.radius >= sw.maxRadius) {
           shockwaves.splice(s, 1);
           continue;
         }
         ctx.beginPath();
         ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${(sw.alpha * (isDark ? 0.55 : 0.35)).toFixed(3)})`;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${(sw.alpha * (isDark ? 0.42 : 0.25)).toFixed(3)})`;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       }
 
-      // Additive glow blending for luminous virtual particles in dark mode
+      const mouseTiltX = pointer.active ? ((pointer.y - cy) / height) * 0.18 : 0;
+      const mouseTiltY = pointer.active ? ((pointer.x - cx) / width) * 0.24 : 0;
+      const rotSpin = elapsed < 1.08 ? elapsed * 2.0 : 2.16 + (elapsed - 1.08) * 0.16;
+      const pitch = 1.05 + mouseTiltX;
+      const roll = -0.18 + mouseTiltY * 0.45;
+      const cosP = Math.cos(pitch);
+      const sinP = Math.sin(pitch);
+      const cosR = Math.cos(roll);
+      const sinR = Math.sin(roll);
+
+      const fov = 560;
+      const camZ = 760;
+      const baseRadius = Math.min(width * 0.34, 380) * ringScale;
+      const mode = formationRef.current;
+
       ctx.globalCompositeOperation = isDark ? "lighter" : "source-over";
+      const springK = elapsed < 1.1 ? 0.07 : 0.04;
+      const damping = elapsed < 1.1 ? 0.82 : 0.88;
 
-      const springK = elapsed < 1.08 ? 0.072 : 0.044;
-      const damping = elapsed < 1.08 ? 0.82 : 0.87;
+      pointer.vx *= 0.84;
+      pointer.vy *= 0.84;
 
-      // Decay pointer velocity smoothly
-      pointer.vx *= 0.85;
-      pointer.vy *= 0.85;
+      // 中心阅读静谧区半径（避免白斑挡住主标题和展台文字）
+      const quietRx = Math.min(width * 0.38, 460);
+      const quietRy = Math.min(height * 0.36, 300);
 
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const p = particles[i];
-
-        // Compute target 3D manifold coordinates (mx, my, mz)
         let mx = 0;
         let my = 0;
         let mz = 0;
 
-        if (p.isOuterDust) {
-          // Deep space orbital dust field
-          const angle = p.u * Math.PI * 2 + rotSpin * 0.35;
-          const dist = baseRadius * (1.45 + p.w * 1.45);
-          mx = Math.cos(angle) * dist;
-          mz = Math.sin(angle) * dist;
-          my = (p.v - 0.5) * 420;
-        } else if (mode === "torus") {
-          // 3D Quantum Twisted Torus (Saturn / Tokamak magnetic field lines)
+        if (mode === "torus") {
           const theta = p.u * Math.PI * 2 + rotSpin;
-          const phi = p.v * Math.PI * 2 * 3 + theta * 2 + elapsed * 0.55;
-          const tubeR = baseRadius * (0.26 + 0.08 * Math.sin(p.w * Math.PI * 2));
+          const phi = p.v * Math.PI * 2 * 2 + theta * 2 + elapsed * 0.4;
+          const tubeR = baseRadius * (0.16 + 0.08 * p.w);
           const ringR = baseRadius + Math.cos(phi) * tubeR;
           mx = Math.cos(theta) * ringR;
           mz = Math.sin(theta) * ringR;
           my = Math.sin(phi) * tubeR;
         } else if (mode === "helix") {
-          // Dual Neural Helix Ribbon for 7-in-1 Activation Studio
           const strand = i % 2 === 0 ? 0 : Math.PI;
-          const span = (p.u - 0.5) * Math.min(width * 0.78, 860);
-          const waveAngle = p.u * Math.PI * 5 + elapsed * 0.9 + strand;
-          const helixR = 88 + p.w * 42;
+          const span = (p.u - 0.5) * Math.min(width * 0.86, 980);
+          const waveAngle = p.u * Math.PI * 4.5 + elapsed * 0.75 + strand;
+          const helixR = 76 + p.w * 34;
           mx = span;
           my = Math.sin(waveAngle) * helixR;
           mz = Math.cos(waveAngle) * helixR;
         } else {
-          // Geodesic Fibonacci Sphere for Encrypted Vault Query
           const yNorm = 1 - 2 * p.u;
           const radAtY = Math.sqrt(Math.max(0, 1 - yNorm * yNorm));
-          const lon = i * 2.39996323 + rotSpin * 0.85;
-          const sphR = baseRadius * 0.86 * (0.94 + 0.08 * p.w);
+          const lon = i * 2.39996323 + rotSpin * 0.7;
+          const sphR = baseRadius * 0.78 * (0.94 + 0.06 * p.w);
           mx = Math.cos(lon) * radAtY * sphR;
           my = yNorm * sphR;
           mz = Math.sin(lon) * radAtY * sphR;
         }
 
-        // Apply 3D pitch & roll rotation to target manifold
         const y1 = my * cosP - mz * sinP;
         const z1 = my * sinP + mz * cosP;
         const tx = mx * cosR - y1 * sinR;
         const ty = mx * sinR + y1 * cosR;
         const tz = z1;
 
-        // Spring acceleration toward target 3D formation
         p.vx += (tx - p.x) * springK;
         p.vy += (ty - p.y) * springK;
         p.vz += (tz - p.z) * springK;
 
-        // Project current 3D position to 2D screen space for cursor/shockwave physics
         const depth = camZ + p.z;
         if (depth > 40) {
           const scale = fov / depth;
           const sx = cx + p.x * scale;
           const sy = cy + p.y * scale;
 
-          // Cursor Magnetic Fluid Force (Repulsion + Tangential Curl Swirl)
           let cursorBoost = 0;
           if (pointer.active) {
             const dx = sx - pointer.x;
             const dy = sy - pointer.y;
             const dSq = dx * dx + dy * dy;
-            const influenceR = 175;
+            const influenceR = 160;
             if (dSq < influenceR * influenceR && dSq > 0.5) {
               const dist = Math.sqrt(dSq);
               const ratio = 1 - dist / influenceR;
-              const force = ratio * ratio * 5.2;
+              const force = ratio * ratio * 4.6;
               const nx = dx / dist;
               const ny = dy / dist;
-              // Radial fluid push + tangential vortex curl + pointer momentum drag
-              p.vx += (nx * force - ny * force * 0.48 + pointer.vx * ratio * 0.14) / scale;
-              p.vy += (ny * force + nx * force * 0.48 + pointer.vy * ratio * 0.14) / scale;
-              p.vz -= ratio * 3.2;
+              p.vx += (nx * force - ny * force * 0.45 + pointer.vx * ratio * 0.12) / scale;
+              p.vy += (ny * force + nx * force * 0.45 + pointer.vy * ratio * 0.12) / scale;
+              p.vz -= ratio * 2.8;
               cursorBoost = ratio;
             }
           }
 
-          // Shockwave radial impulse
           for (let s = 0; s < shockwaves.length; s++) {
             const sw = shockwaves[s];
             const dx = sx - sw.x;
             const dy = sy - sw.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             const band = Math.abs(dist - sw.radius);
-            if (band < 48 && dist > 1) {
-              const waveForce = (1 - band / 48) * sw.alpha * 9.5;
+            if (band < 42 && dist > 1) {
+              const waveForce = (1 - band / 42) * sw.alpha * 8.2;
               p.vx += ((dx / dist) * waveForce) / scale;
               p.vy += ((dy / dist) * waveForce) / scale;
-              p.vz -= waveForce * 0.6;
-              cursorBoost = Math.max(cursorBoost, (1 - band / 48) * sw.alpha);
+              cursorBoost = Math.max(cursorBoost, (1 - band / 42) * sw.alpha);
             }
           }
 
-          // Integrate velocity
           p.vx *= damping;
           p.vy *= damping;
           p.vz *= damping;
@@ -444,38 +424,49 @@ export const QuantumParticleCanvas: React.FC<Props> = ({
           p.y += p.vy;
           p.z += p.vz;
 
-          // Final screen projection & depth-of-field alpha
           const newDepth = camZ + p.z;
           if (newDepth > 50) {
             const pScale = fov / newDepth;
             const drawX = cx + p.x * pScale;
             const drawY = cy + p.y * pScale;
 
-            if (drawX > -40 && drawX < width + 40 && drawY > -40 && drawY < height + 40) {
-              const depthFade = Math.min(1.1, Math.max(0.15, (1150 - newDepth) / 740));
-              const drawRadius = p.size * pScale * (1 + cursorBoost * 0.75) * 1.75;
+            if (drawX > -24 && drawX < width + 24 && drawY > -24 && drawY < height + 24) {
+              // 计算中心静谧区衰减：让标题与展台区保持极致干净清晰，外围粒子精致闪烁
+              const qx = (drawX - cx) / quietRx;
+              const qy = (drawY - height * 0.34) / quietRy;
+              const qDist = Math.sqrt(qx * qx + qy * qy);
+              const quietAttenuation =
+                qDist < 1.0
+                  ? 1 - quietZoneStrength * (1 - qDist * qDist) * 0.84
+                  : 1.0;
+
+              const depthFade = Math.min(1.0, Math.max(0.18, (1180 - newDepth) / 760));
+              const drawRadius = p.size * pScale * (1 + cursorBoost * 0.65) * 1.45;
               const finalAlpha = Math.min(
-                0.88,
-                p.alpha * depthFade * (isDark ? 0.56 : 0.48) + cursorBoost * 0.42
+                0.78,
+                (p.alpha * depthFade * (isDark ? 0.54 : 0.42) * quietAttenuation) +
+                  cursorBoost * 0.36
               );
 
-              ctx.globalAlpha = finalAlpha;
-              const sprite =
-                cursorBoost > 0.25
-                  ? spriteIce
-                  : p.tintMix > 0.72
-                    ? spriteIce
-                    : p.tintMix > 0.38
-                      ? spriteSecondary
-                      : spritePrimary;
+              if (finalAlpha > 0.025) {
+                ctx.globalAlpha = finalAlpha;
+                const sprite =
+                  cursorBoost > 0.28
+                    ? spriteNeutral
+                    : p.tintMix > 0.7
+                      ? spriteNeutral
+                      : p.tintMix > 0.38
+                        ? spriteSecondary
+                        : spritePrimary;
 
-              ctx.drawImage(
-                sprite,
-                drawX - drawRadius,
-                drawY - drawRadius,
-                drawRadius * 2,
-                drawRadius * 2
-              );
+                ctx.drawImage(
+                  sprite,
+                  drawX - drawRadius,
+                  drawY - drawRadius,
+                  drawRadius * 2,
+                  drawRadius * 2
+                );
+              }
             }
           }
         } else {

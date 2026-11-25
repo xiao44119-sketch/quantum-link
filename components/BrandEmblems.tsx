@@ -28,10 +28,10 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
   if (brand === "openai") {
     return (
       <div
-        className={`${boxCls} relative flex items-center justify-center border border-emerald-400/30 shadow-[0_0_28px_-4px_rgba(16,185,129,0.45)] overflow-hidden`}
+        className={`${boxCls} relative flex items-center justify-center border border-emerald-400/35 shadow-[0_6px_18px_-6px_rgba(16,185,129,0.45)] overflow-hidden`}
         style={{
           background:
-            "linear-gradient(145deg, rgba(16,185,129,0.24) 0%, rgba(6,78,59,0.38) 100%)",
+            "linear-gradient(145deg, rgba(16,185,129,0.28) 0%, rgba(6,78,59,0.52) 100%), #121619",
         }}
       >
         <svg
@@ -39,9 +39,9 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
           height={svgSize}
           viewBox="0 0 24 24"
           fill="none"
-          className="text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]"
+          className="text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.65)]"
         >
-          <g stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">
+          <g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2.75c2.1 0 3.85 1.48 4.25 3.46a4.35 4.35 0 0 1 3.72 2.17c1.05 1.82.62 4.1-.94 5.42.26 2.06-.82 4.1-2.78 4.9a4.35 4.35 0 0 1-4.25 2.55c-2.1 0-3.85-1.48-4.25-3.46a4.35 4.35 0 0 1-3.72-2.17c-1.05-1.82-.62-4.1.94-5.42-.26-2.06.82-4.1 2.78-4.9A4.35 4.35 0 0 1 12 2.75Z" />
             <polygon points="12,7.8 15.6,9.9 15.6,14.1 12,16.2 8.4,14.1 8.4,9.9" />
             <line x1="12" y1="7.8" x2="16.25" y2="6.2" />
@@ -59,10 +59,10 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
   if (brand === "gemini") {
     return (
       <div
-        className={`${boxCls} relative flex items-center justify-center border border-indigo-400/35 shadow-[0_0_30px_-4px_rgba(129,140,248,0.5)] overflow-hidden`}
+        className={`${boxCls} relative flex items-center justify-center border border-indigo-400/35 shadow-[0_6px_18px_-6px_rgba(99,102,241,0.48)] overflow-hidden`}
         style={{
           background:
-            "linear-gradient(145deg, rgba(56,189,248,0.22) 0%, rgba(129,140,248,0.26) 55%, rgba(192,132,252,0.2) 100%)",
+            "linear-gradient(145deg, rgba(56,189,248,0.24) 0%, rgba(99,102,241,0.34) 55%, rgba(192,132,252,0.24) 100%), #131520",
         }}
       >
         <svg width={svgSize} height={svgSize} viewBox="0 0 24 24" fill="none">
@@ -85,10 +85,10 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
   if (brand === "grok") {
     return (
       <div
-        className={`${boxCls} relative flex items-center justify-center border border-slate-300/30 shadow-[0_0_28px_-4px_rgba(226,232,240,0.35)] overflow-hidden`}
+        className={`${boxCls} relative flex items-center justify-center border border-amber-200/25 shadow-[0_6px_18px_-6px_rgba(228,178,116,0.32)] overflow-hidden`}
         style={{
           background:
-            "linear-gradient(145deg, rgba(248,250,252,0.16) 0%, rgba(71,85,105,0.28) 100%)",
+            "linear-gradient(145deg, rgba(228,178,116,0.22) 0%, rgba(51,65,85,0.42) 100%), #15161a",
         }}
       >
         <svg
@@ -96,7 +96,7 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
           height={svgSize}
           viewBox="0 0 24 24"
           fill="none"
-          className="text-slate-100 drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]"
+          className="text-amber-100 drop-shadow-[0_0_8px_rgba(228,178,116,0.45)]"
         >
           <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.75" strokeDasharray="34 12" />
           <path d="M5.2 19.2L19.2 4.8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -108,10 +108,10 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
   if (brand === "card_sms") {
     return (
       <div
-        className={`${boxCls} relative flex items-center justify-center border border-sky-400/35 shadow-[0_0_28px_-4px_rgba(56,189,248,0.45)] overflow-hidden`}
+        className={`${boxCls} relative flex items-center justify-center border border-orange-400/35 shadow-[0_6px_18px_-6px_rgba(251,81,35,0.45)] overflow-hidden`}
         style={{
           background:
-            "linear-gradient(145deg, rgba(56,189,248,0.24) 0%, rgba(14,116,144,0.32) 100%)",
+            "linear-gradient(145deg, rgba(251,81,35,0.28) 0%, rgba(180,83,9,0.42) 100%), #181414",
         }}
       >
         <svg
@@ -119,7 +119,7 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
           height={svgSize}
           viewBox="0 0 24 24"
           fill="none"
-          className="text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.55)]"
+          className="text-orange-300 drop-shadow-[0_0_8px_rgba(251,81,35,0.55)]"
         >
           <rect x="2.5" y="5" width="19" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
           <rect x="5.5" y="9.5" width="4.5" height="3.5" rx="0.8" stroke="currentColor" strokeWidth="1.4" />
@@ -134,10 +134,10 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
   if (brand === "telegram") {
     return (
       <div
-        className={`${boxCls} relative flex items-center justify-center border border-cyan-400/35 shadow-[0_0_28px_-4px_rgba(14,165,233,0.48)] overflow-hidden`}
+        className={`${boxCls} relative flex items-center justify-center border border-sky-400/35 shadow-[0_6px_18px_-6px_rgba(14,165,233,0.48)] overflow-hidden`}
         style={{
           background:
-            "linear-gradient(145deg, rgba(14,165,233,0.26) 0%, rgba(2,132,199,0.32) 100%)",
+            "linear-gradient(145deg, rgba(14,165,233,0.28) 0%, rgba(3,105,161,0.46) 100%), #11161d",
         }}
       >
         <svg
@@ -145,7 +145,7 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
           height={svgSize}
           viewBox="0 0 24 24"
           fill="none"
-          className="text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.55)]"
+          className="text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]"
         >
           <path
             d="M21.2 4.4L2.9 11.5C2.1 11.8 2.1 12.9 2.9 13.2L7.6 14.8L18.2 7.9L10.1 15.8L9.8 20.1C9.8 20.8 10.6 21.1 11.1 20.6L13.9 17.9L18.4 21.1C19.1 21.6 20.1 21.2 20.3 20.3L22.5 5.6C22.7 4.7 21.9 4.1 21.2 4.4Z"
@@ -160,10 +160,10 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
 
   return (
     <div
-      className={`${boxCls} relative flex items-center justify-center border border-purple-400/35 shadow-[0_0_28px_-4px_rgba(168,85,247,0.48)] overflow-hidden`}
+      className={`${boxCls} relative flex items-center justify-center border border-purple-400/35 shadow-[0_6px_18px_-6px_rgba(168,85,247,0.48)] overflow-hidden`}
       style={{
         background:
-          "linear-gradient(145deg, rgba(168,85,247,0.24) 0%, rgba(236,72,153,0.22) 100%)",
+          "linear-gradient(145deg, rgba(168,85,247,0.28) 0%, rgba(190,24,93,0.34) 100%), #17131d",
       }}
     >
       <svg
@@ -171,7 +171,7 @@ export const BrandEmblem: React.FC<EmblemProps> = ({ brand, size = "lg" }) => {
         height={svgSize}
         viewBox="0 0 24 24"
         fill="none"
-        className="text-purple-300 drop-shadow-[0_0_8px_rgba(192,132,252,0.6)]"
+        className="text-purple-300 drop-shadow-[0_0_8px_rgba(192,132,252,0.65)]"
       >
         <path
           d="M13.2 2.5L4.8 13.4H11.6L10.8 21.5L19.2 10.6H12.4L13.2 2.5Z"
